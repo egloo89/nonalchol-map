@@ -14,8 +14,8 @@ const FIREBASE_CONFIG = {
 };
 
 // =====================================================
-// 네이버 맵 Client ID
-// 네이버 클라우드 플랫폼에서 발급받은 Client ID를 입력하세요.
+// 카카오맵 JavaScript 키
+// kakao developers > 앱 > 플랫폼 키 > JavaScript 키
 // =====================================================
 
-const NAVER_MAP_CLIENT_ID = "여기에_네이버맵_ClientID_입력";
+const KAKAO_MAP_KEY = "96651efd5ec0fb0a78ea99976a5eb85f";

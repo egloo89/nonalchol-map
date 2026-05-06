@@ -1,9 +1,10 @@
 // =====================================================
-// 논알콜 맥주 술집 맵 - 메인 앱
+// 논알콜 맥주 술집 맵 - 카카오맵 버전
 // =====================================================
 
 let map = null;
-let markers = [];
+let markers = [];       // CustomOverlay 마커
+let infoOverlays = [];  // CustomOverlay 정보창
 let places = [];
 let currentInfoWindow = null;
 let geocoderResult = null;
@@ -12,7 +13,7 @@ let geocoderResult = null;
 
 function initFirebase() {
   if (!window.firebase) {
-    showMapMessage("Firebase 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.", true);
+    showMapMessage("Firebase 라이브러리를 불러오지 못했습니다.", true);
     return false;
   }
   try {
@@ -26,28 +27,33 @@ function initFirebase() {
   }
 }
 
-// ─── 네이버 맵 초기화 ──────────────────────────────
+// ─── 카카오맵 초기화 ───────────────────────────────
 
 function initMap() {
-  if (!window.naver || !window.naver.maps) {
-    showMapMessage("네이버 맵을 불러오지 못했습니다. Client ID를 확인해 주세요.", true);
+  if (!window.kakao || !window.kakao.maps) {
+    showMapMessage("카카오맵을 불러오지 못했습니다.", true);
     return;
   }
 
-  map = new naver.maps.Map("map", {
-    center: new naver.maps.LatLng(37.5665, 126.978),
-    zoom: 13,
-    mapTypeControl: false,
-    scaleControl: false,
+  const container = document.getElementById("map");
+  map = new kakao.maps.Map(container, {
+    center: new kakao.maps.LatLng(37.5665, 126.978),
+    level: 5,
   });
 
-  // 지도 클릭 시 열린 info window 닫기
-  naver.maps.Event.addListener(map, "click", () => {
-    if (currentInfoWindow) currentInfoWindow.close();
+  kakao.maps.event.addListener(map, "click", () => {
+    closeInfoWindow();
   });
 
   hideMapMessage();
   loadPlaces();
+}
+
+function closeInfoWindow() {
+  if (currentInfoWindow) {
+    currentInfoWindow.setMap(null);
+    currentInfoWindow = null;
+  }
 }
 
 // ─── Firestore: 가게 불러오기 ──────────────────────
@@ -75,11 +81,14 @@ async function addPlace(data) {
   });
 }
 
-// ─── 마커 렌더링 ───────────────────────────────────
+// ─── 마커 렌더링 (카카오 CustomOverlay) ──────────
 
 function clearMarkers() {
   markers.forEach((m) => m.setMap(null));
+  infoOverlays.forEach((o) => o.setMap(null));
   markers = [];
+  infoOverlays = [];
+  currentInfoWindow = null;
 }
 
 function renderMarkers(filtered) {
@@ -89,57 +98,65 @@ function renderMarkers(filtered) {
   list.forEach((place) => {
     if (!place.lat || !place.lng) return;
 
+    const position = new kakao.maps.LatLng(place.lat, place.lng);
+
+    // 핀 마커 (CustomOverlay)
     const markerEl = document.createElement("div");
-    markerEl.className = "custom-marker";
     markerEl.innerHTML = `
       <div style="
-        background: #2563eb;
-        color: white;
-        border-radius: 50% 50% 50% 0;
-        width: 36px; height: 36px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 18px;
-        box-shadow: 0 2px 8px rgba(37,99,235,0.5);
-        transform: rotate(-45deg);
-        border: 2px solid white;
+        background:#2563eb; color:white;
+        width:38px; height:38px;
+        border-radius:50% 50% 50% 0;
+        display:flex; align-items:center; justify-content:center;
+        font-size:20px;
+        box-shadow:0 2px 8px rgba(37,99,235,0.5);
+        transform:rotate(-45deg);
+        border:2px solid white;
+        cursor:pointer;
       ">
-        <span style="transform: rotate(45deg);">🍺</span>
+        <span style="transform:rotate(45deg)">🍺</span>
       </div>
     `;
 
-    const marker = new naver.maps.Marker({
-      position: new naver.maps.LatLng(place.lat, place.lng),
-      map: map,
-      icon: {
-        content: markerEl,
-        anchor: new naver.maps.Point(18, 36),
-      },
+    const marker = new kakao.maps.CustomOverlay({
+      position,
+      content: markerEl,
+      map,
+      yAnchor: 1,
+      zIndex: 3,
     });
 
+    // 정보창 (CustomOverlay)
     const infoContent = buildInfoWindowContent(place);
-    const infoWindow = new naver.maps.InfoWindow({
-      content: infoContent,
-      borderWidth: 0,
-      disableAnchor: false,
-      backgroundColor: "transparent",
-      pixelOffset: new naver.maps.Point(0, -10),
+    const infoEl = document.createElement("div");
+    infoEl.innerHTML = infoContent;
+
+    const infoOverlay = new kakao.maps.CustomOverlay({
+      position,
+      content: infoEl,
+      map: null,
+      yAnchor: 1.15,
+      zIndex: 5,
     });
 
-    naver.maps.Event.addListener(marker, "click", () => {
-      if (currentInfoWindow) currentInfoWindow.close();
-      infoWindow.open(map, marker);
-      currentInfoWindow = infoWindow;
+    // 마커 클릭
+    markerEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeInfoWindow();
+      infoOverlay.setMap(map);
+      currentInfoWindow = infoOverlay;
       highlightCard(place.id);
-      map.panTo(new naver.maps.LatLng(place.lat, place.lng));
+      map.panTo(position);
     });
 
     markers.push(marker);
+    infoOverlays.push(infoOverlay);
   });
 }
 
 function buildInfoWindowContent(place) {
   const brandsHtml = (place.brands || [])
-    .map((b) => `<span class="brand-tag">${b}</span>`)
+    .map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`)
     .join("");
 
   return `
@@ -150,9 +167,7 @@ function buildInfoWindowContent(place) {
       ${place.description ? `<div class="iw-desc">${escapeHtml(place.description)}</div>` : ""}
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
       ${place.hours ? `<div class="iw-meta">🕐 ${escapeHtml(place.hours)}</div>` : ""}
-      <div class="iw-meta" style="margin-top:6px">
-        추가: ${place.addedBy ? escapeHtml(place.addedBy) : "익명"}
-      </div>
+      <div class="iw-meta" style="margin-top:6px">추가: ${escapeHtml(place.addedBy || "익명")}</div>
     </div>
   `;
 }
@@ -173,18 +188,16 @@ function renderSidebar(list) {
   }
 
   container.innerHTML = list
-    .map(
-      (p) => `
-    <div class="place-card" data-id="${p.id}" onclick="focusPlace('${p.id}')">
-      <div class="name">${escapeHtml(p.name)}</div>
-      <div class="address">📍 ${escapeHtml(p.address)}</div>
-      <div class="brands">
-        ${(p.brands || []).map((b) => `<span class="brand-tag">${b}</span>`).join("")}
+    .map((p) => `
+      <div class="place-card" data-id="${p.id}" onclick="focusPlace('${p.id}')">
+        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="address">📍 ${escapeHtml(p.address)}</div>
+        <div class="brands">
+          ${(p.brands || []).map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`).join("")}
+        </div>
+        ${p.description ? `<div class="meta">${escapeHtml(p.description.slice(0, 60))}${p.description.length > 60 ? "..." : ""}</div>` : ""}
       </div>
-      ${p.description ? `<div class="meta">${escapeHtml(p.description.slice(0, 60))}${p.description.length > 60 ? "..." : ""}</div>` : ""}
-    </div>
-  `
-    )
+    `)
     .join("");
 }
 
@@ -201,12 +214,16 @@ window.focusPlace = function (id) {
   if (!place || !place.lat || !place.lng) return;
 
   highlightCard(id);
-  map.panTo(new naver.maps.LatLng(place.lat, place.lng));
-  map.setZoom(16);
+  const position = new kakao.maps.LatLng(place.lat, place.lng);
+  map.panTo(position);
+  map.setLevel(3);
 
-  const markerIndex = places.filter((p) => p.lat && p.lng).findIndex((p) => p.id === id);
-  if (markers[markerIndex]) {
-    naver.maps.Event.trigger(markers[markerIndex], "click");
+  // 해당 마커의 정보창 열기
+  const idx = (places.filter((p) => p.lat && p.lng)).findIndex((p) => p.id === id);
+  if (infoOverlays[idx]) {
+    closeInfoWindow();
+    infoOverlays[idx].setMap(map);
+    currentInfoWindow = infoOverlays[idx];
   }
 };
 
@@ -257,20 +274,19 @@ document.getElementById("modal-overlay").addEventListener("click", (e) => {
   if (e.target === e.currentTarget) closeModal();
 });
 
-// 브랜드 체크박스 토글
 document.querySelectorAll(".brand-checkbox").forEach((el) => {
   el.addEventListener("click", () => {
-    const val = el.dataset.value;
     el.classList.toggle("checked");
-    if (val === "기타") {
-      document.getElementById("brand-other-input").style.display = el.classList.contains("checked") ? "block" : "none";
+    if (el.dataset.value === "기타") {
+      document.getElementById("brand-other-input").style.display =
+        el.classList.contains("checked") ? "block" : "none";
     }
   });
 });
 
-// ─── 주소 → 좌표 변환 (네이버 Geocoding) ─────────
+// ─── 주소 → 좌표 변환 (카카오 Geocoder) ──────────
 
-document.getElementById("btn-search-address").addEventListener("click", async () => {
+document.getElementById("btn-search-address").addEventListener("click", () => {
   const address = document.getElementById("input-address").value.trim();
   if (!address) {
     showToast("주소를 먼저 입력해 주세요.");
@@ -281,32 +297,24 @@ document.getElementById("btn-search-address").addEventListener("click", async ()
   btn.textContent = "검색 중...";
   btn.disabled = true;
 
-  try {
-    await new Promise((resolve, reject) => {
-      naver.maps.Service.geocode({ query: address }, (status, response) => {
-        if (status === naver.maps.Service.Status.ERROR) {
-          reject(new Error("Geocoding 실패"));
-          return;
-        }
-        if (!response.v2.addresses || response.v2.addresses.length === 0) {
-          reject(new Error("주소를 찾을 수 없습니다. 더 구체적으로 입력해 주세요."));
-          return;
-        }
-        const result = response.v2.addresses[0];
-        geocoderResult = { lat: parseFloat(result.y), lng: parseFloat(result.x) };
-        updateCoordsDisplay(geocoderResult.lat, geocoderResult.lng);
-        showToast("주소 확인 완료!", "success");
-        resolve();
-      });
-    });
-  } catch (e) {
-    showToast(e.message, "error");
-    geocoderResult = null;
-    updateCoordsDisplay(null, null);
-  } finally {
+  const geocoder = new kakao.maps.services.Geocoder();
+  geocoder.addressSearch(address, (result, status) => {
     btn.textContent = "주소 확인";
     btn.disabled = false;
-  }
+
+    if (status === kakao.maps.services.Status.OK && result.length > 0) {
+      geocoderResult = {
+        lat: parseFloat(result[0].y),
+        lng: parseFloat(result[0].x),
+      };
+      updateCoordsDisplay(geocoderResult.lat, geocoderResult.lng);
+      showToast("주소 확인 완료!", "success");
+    } else {
+      showToast("주소를 찾을 수 없습니다. 더 구체적으로 입력해 주세요.", "error");
+      geocoderResult = null;
+      updateCoordsDisplay(null, null);
+    }
+  });
 });
 
 function updateCoordsDisplay(lat, lng) {
@@ -332,13 +340,11 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
     showToast("가게 이름과 주소는 필수입니다.", "error");
     return;
   }
-
   if (!geocoderResult) {
     showToast("주소 확인 버튼을 눌러 위치를 확인해 주세요.", "error");
     return;
   }
 
-  // 선택된 브랜드 수집
   const brands = [];
   document.querySelectorAll(".brand-checkbox.checked").forEach((el) => {
     const val = el.dataset.value;
@@ -374,10 +380,8 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
 
     closeModal();
     showToast(`'${name}' 가게가 등록되었습니다!`, "success");
-
-    // 지도를 새 가게 위치로 이동
-    map.panTo(new naver.maps.LatLng(geocoderResult.lat, geocoderResult.lng));
-    map.setZoom(16);
+    map.panTo(new kakao.maps.LatLng(geocoderResult.lat, geocoderResult.lng));
+    map.setLevel(3);
   } catch (err) {
     console.error(err);
     showToast("등록 중 오류가 발생했습니다. 다시 시도해 주세요.", "error");
@@ -387,17 +391,17 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
   }
 });
 
-// ─── Toast 알림 ────────────────────────────────────
+// ─── Toast ─────────────────────────────────────────
 
 function showToast(msg, type = "") {
   const el = document.getElementById("toast");
   el.textContent = msg;
-  el.className = `${type}`;
+  el.className = type;
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), 3000);
 }
 
-// ─── 지도 로딩 메시지 ─────────────────────────────
+// ─── 지도 메시지 ───────────────────────────────────
 
 function showMapMessage(msg, isError = false) {
   const el = document.getElementById("map-message");
@@ -424,7 +428,6 @@ function escapeHtml(str) {
 // ─── 앱 시작 ───────────────────────────────────────
 
 window.onload = function () {
-  const ok = initFirebase();
-  if (!ok) return;
-  // initMap은 네이버 맵 스크립트 로드 완료 후 callback으로 호출됨
+  initFirebase();
+  // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };
