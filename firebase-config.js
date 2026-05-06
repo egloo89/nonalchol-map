@@ -5,12 +5,12 @@
 // =====================================================
 
 const FIREBASE_CONFIG = {
-  apiKey: "여기에_API키_입력",
-  authDomain: "여기에_authDomain_입력",
-  projectId: "여기에_projectId_입력",
-  storageBucket: "여기에_storageBucket_입력",
-  messagingSenderId: "여기에_messagingSenderId_입력",
-  appId: "여기에_appId_입력"
+  apiKey: "AIzaSyDG15N1TK5mSKTgYsJz5huZjQWlQDbWDjM",
+  authDomain: "non-alchol-map.firebaseapp.com",
+  projectId: "non-alchol-map",
+  storageBucket: "non-alchol-map.firebasestorage.app",
+  messagingSenderId: "950373297714",
+  appId: "1:950373297714:web:767553592e5913afa3562b"
 };
 
 // =====================================================
