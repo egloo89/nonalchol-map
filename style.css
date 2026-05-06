@@ -225,7 +225,47 @@ body {
   box-shadow: var(--shadow-lg);
   min-width: 240px;
   max-width: 300px;
+  position: relative;
 }
+
+.iw-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg);
+  border: none;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  line-height: 1;
+  transition: background 0.15s;
+}
+.iw-close:hover { background: var(--border); }
+
+.iw-category {
+  display: inline-block;
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.info-window a {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 11px;
+}
+.info-window a:hover { text-decoration: underline; }
 
 .info-window .iw-name {
   font-size: 16px;

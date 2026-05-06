@@ -41,8 +41,9 @@ function initMap() {
     level: 5,
   });
 
-  kakao.maps.event.addListener(map, "click", () => {
+  kakao.maps.event.addListener(map, "click", (mouseEvent) => {
     closeInfoWindow();
+    searchAndShowPoiInfo(mouseEvent.latLng);
   });
 
   hideMapMessage();
@@ -54,6 +55,59 @@ function closeInfoWindow() {
     currentInfoWindow.setMap(null);
     currentInfoWindow = null;
   }
+}
+
+// ─── 기존 카카오맵 POI 클릭 정보 표시 ─────────────
+
+function searchAndShowPoiInfo(latlng) {
+  if (!window.kakao?.maps?.services) return;
+  const ps = new kakao.maps.services.Places();
+  ps.categorySearch("FD6", (data, status) => {
+    if (status === kakao.maps.services.Status.OK && data.length > 0) {
+      const place = data[0];
+      showPoiInfoWindow(place, new kakao.maps.LatLng(place.y, place.x));
+    }
+  }, { location: latlng, radius: 35, sort: kakao.maps.services.SortBy.DISTANCE });
+}
+
+function showPoiInfoWindow(place, position) {
+  const infoEl = document.createElement("div");
+  infoEl.innerHTML = buildPoiContent(place);
+  infoEl.querySelector(".iw-close")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    kakao.maps.event.preventMap();
+    closeInfoWindow();
+  });
+
+  const overlay = new kakao.maps.CustomOverlay({
+    position,
+    content: infoEl,
+    map,
+    yAnchor: 1.15,
+    zIndex: 5,
+  });
+  currentInfoWindow = overlay;
+}
+
+function buildPoiContent(place) {
+  const category = place.category_name
+    ? escapeHtml(place.category_name.split(" > ").pop())
+    : "";
+  const address = escapeHtml(place.road_address_name || place.address_name || "");
+  const name = escapeHtml(place.place_name);
+  const phone = place.phone ? escapeHtml(place.phone) : "";
+  const url = place.place_url ? escapeHtml(place.place_url) : "";
+
+  return `
+    <div class="info-window poi-info-window">
+      <button class="iw-close">✕</button>
+      <div class="iw-name">${name}</div>
+      ${category ? `<div class="iw-category">${category}</div>` : ""}
+      <div class="iw-address">📍 ${address}</div>
+      ${phone ? `<div class="iw-meta">📞 ${phone}</div>` : ""}
+      ${url ? `<div class="iw-meta"><a href="${url}" target="_blank" rel="noopener">카카오맵에서 보기 →</a></div>` : ""}
+    </div>
+  `;
 }
 
 // ─── Firestore: 가게 불러오기 ──────────────────────
@@ -142,6 +196,7 @@ function renderMarkers(filtered) {
     // 마커 클릭
     markerEl.addEventListener("click", (e) => {
       e.stopPropagation();
+      kakao.maps.event.preventMap();
       closeInfoWindow();
       infoOverlay.setMap(map);
       currentInfoWindow = infoOverlay;
