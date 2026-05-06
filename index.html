@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>논알콜 맥주 술집 지도</title>
+  <meta name="description" content="술을 줄이고 싶은 분들을 위한, 논알콜 맥주를 함께 파는 술집 모음 지도" />
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Firebase SDK (v8 compat - 설정이 가장 간단한 버전) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- 내 Firebase 설정값 -->
+  <script src="firebase-config.js"></script>
+
+  <!-- 네이버 맵 API (Client ID는 firebase-config.js에서 불러옴) -->
+  <script>
+    // 네이버 맵 스크립트를 동적으로 삽입 (Client ID를 config에서 읽기 위해)
+    document.addEventListener("DOMContentLoaded", function () {
+      const script = document.createElement("script");
+      script.src =
+        `https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${NAVER_MAP_CLIENT_ID}&submodules=geocoder`;
+      script.onload = function () {
+        initMap();
+      };
+      script.onerror = function () {
+        document.getElementById("map-message").innerHTML =
+          "<span>⚠️</span><span>네이버 맵을 불러오지 못했습니다. Client ID를 확인해 주세요.</span>";
+      };
+      document.head.appendChild(script);
+    });
+  </script>
+</head>
+<body>
+
+<!-- ─── 헤더 ─── -->
+<header id="header">
+  <div class="logo">
+    <div class="icon">🍺</div>
+    <div>
+      <div>논알콜 술집 지도</div>
+      <div class="subtitle">술 줄이기 프로젝트</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <span class="count-badge" id="place-count">0개 가게</span>
+  <button id="btn-add-place">＋ 가게 추가</button>
+</header>
+
+<!-- ─── 본문 ─── -->
+<div id="app">
+
+  <!-- 사이드바: 가게 목록 -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <input
+        id="search-input"
+        type="search"
+        placeholder="가게 이름, 주소, 맥주 브랜드 검색..."
+      />
+    </div>
+    <div id="place-list">
+      <div id="empty-state">
+        <div class="icon">⏳</div>
+        <p>가게 정보를 불러오는 중...</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 지도 -->
+  <div id="map-container">
+    <div id="map-message">
+      <span>⏳</span>
+      <span>지도를 불러오는 중...</span>
+    </div>
+    <div id="map"></div>
+  </div>
+
+</div>
+
+<!-- ─── 가게 추가 모달 ─── -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+    <div class="modal-header">
+      <h2 id="modal-title">논알콜 술집 추가하기</h2>
+      <button class="modal-close" id="modal-close" aria-label="닫기">✕</button>
+    </div>
+
+    <form id="add-form">
+      <div class="modal-body">
+
+        <!-- 가게 이름 -->
+        <div class="form-group">
+          <label for="input-name">
+            가게 이름 <span class="required">*</span>
+          </label>
+          <input
+            id="input-name"
+            type="text"
+            placeholder="예: 어반플레이스 홍대점"
+            required
+            maxlength="60"
+          />
+        </div>
+
+        <!-- 주소 -->
+        <div class="form-group">
+          <label for="input-address">
+            주소 <span class="required">*</span>
+            <span class="hint">도로명 또는 지번 주소</span>
+          </label>
+          <div class="address-row">
+            <input
+              id="input-address"
+              type="text"
+              placeholder="예: 서울 마포구 홍익로 5길 20"
+              required
+              maxlength="150"
+            />
+            <button type="button" id="btn-search-address">주소 확인</button>
+          </div>
+          <div class="coords-display" id="coords-display">
+            주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.
+          </div>
+        </div>
+
+        <!-- 논알콜 맥주 종류 -->
+        <div class="form-group">
+          <label>
+            논알콜 맥주 종류 <span class="required">*</span>
+            <span class="hint">파는 것 모두 선택</span>
+          </label>
+          <div class="brands-grid">
+            <label class="brand-checkbox" data-value="하이네켄 0.0">
+              <input type="checkbox" />
+              <span class="cb-icon">🟢</span> 하이네켄 0.0
+            </label>
+            <label class="brand-checkbox" data-value="버드와이저 제로">
+              <input type="checkbox" />
+              <span class="cb-icon">🔴</span> 버드와이저 제로
+            </label>
+            <label class="brand-checkbox" data-value="클라우드 클리어 제로">
+              <input type="checkbox" />
+              <span class="cb-icon">🟡</span> 클라우드 클리어 제로
+            </label>
+            <label class="brand-checkbox" data-value="카스 0.0">
+              <input type="checkbox" />
+              <span class="cb-icon">🔵</span> 카스 0.0
+            </label>
+            <label class="brand-checkbox" data-value="칭따오 논알콜">
+              <input type="checkbox" />
+              <span class="cb-icon">🟤</span> 칭따오 논알콜
+            </label>
+            <label class="brand-checkbox" data-value="에딩거 알코홀프라이">
+              <input type="checkbox" />
+              <span class="cb-icon">⚪</span> 에딩거 알코홀프라이
+            </label>
+            <label class="brand-checkbox" data-value="기타">
+              <input type="checkbox" />
+              <span class="cb-icon">➕</span> 기타
+            </label>
+          </div>
+          <div id="brand-other-input" style="display:none; margin-top:8px;">
+            <input
+              id="input-other-brand"
+              type="text"
+              placeholder="브랜드 이름을 직접 입력"
+              maxlength="40"
+            />
+          </div>
+        </div>
+
+        <!-- 설명 -->
+        <div class="form-group">
+          <label for="input-description">
+            한줄 설명
+            <span class="hint">선택</span>
+          </label>
+          <textarea
+            id="input-description"
+            placeholder="예: 분위기 좋은 펍. 논알콜은 냉장 보관. 직원분이 친절하게 설명해줌."
+            maxlength="200"
+          ></textarea>
+        </div>
+
+        <!-- 전화번호 -->
+        <div class="form-group">
+          <label for="input-phone">
+            전화번호
+            <span class="hint">선택</span>
+          </label>
+          <input
+            id="input-phone"
+            type="tel"
+            placeholder="예: 02-1234-5678"
+            maxlength="20"
+          />
+        </div>
+
+        <!-- 영업시간 -->
+        <div class="form-group">
+          <label for="input-hours">
+            영업시간
+            <span class="hint">선택</span>
+          </label>
+          <input
+            id="input-hours"
+            type="text"
+            placeholder="예: 매일 18:00 ~ 02:00 (일요일 휴무)"
+            maxlength="80"
+          />
+        </div>
+
+        <!-- 추가한 사람 -->
+        <div class="form-group">
+          <label for="input-added-by">
+            추가한 사람
+            <span class="hint">선택 (닉네임 등)</span>
+          </label>
+          <input
+            id="input-added-by"
+            type="text"
+            placeholder="예: 홍길동 / 익명으로 남기려면 비워두세요"
+            maxlength="30"
+          />
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-cancel">취소</button>
+        <button type="submit" class="btn-submit" id="btn-submit">가게 등록하기</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ─── 토스트 알림 ─── -->
+<div id="toast"></div>
+
+<!-- ─── 앱 JS ─── -->
+<script src="app.js"></script>
+
+</body>
+</html>
