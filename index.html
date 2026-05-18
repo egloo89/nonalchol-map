@@ -10,6 +10,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
   <!-- 내 설정값 -->
   <script src="firebase-config.js"></script>
@@ -45,6 +46,16 @@
   </div>
   <div class="spacer"></div>
   <span class="count-badge" id="place-count">0개 가게</span>
+  <div id="auth-section">
+    <div id="auth-logged-out">
+      <button id="btn-login" class="btn-login">로그인</button>
+    </div>
+    <div id="auth-logged-in">
+      <span id="user-nickname"></span>
+      <button id="btn-logout" class="btn-logout">로그아웃</button>
+    </div>
+  </div>
+  <a href="admin.html" class="btn-admin-link">관리자</a>
   <button id="btn-add-place">＋ 가게 추가</button>
 </header>
 
@@ -181,6 +192,27 @@
       </div>
     </form>
 
+  </div>
+</div>
+
+<!-- ─── 닉네임 설정 모달 ─── -->
+<div id="nickname-modal-overlay" class="modal-overlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2 id="nickname-modal-title">닉네임 설정</h2>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:#64748b;margin-bottom:16px;line-height:1.6">
+        처음 방문하셨군요!<br>가게 등록 시 사용할 닉네임을 설정해 주세요.
+      </p>
+      <div class="form-group">
+        <label for="input-nickname">닉네임 <span class="required">*</span></label>
+        <input id="input-nickname" type="text" placeholder="2~20자" maxlength="20" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-submit" id="btn-save-nickname">저장하기</button>
+    </div>
   </div>
 </div>
 

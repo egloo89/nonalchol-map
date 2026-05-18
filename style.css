@@ -98,6 +98,64 @@ body {
 
 #btn-add-place:hover { background: var(--primary-dark); }
 
+/* ─── Auth UI ─── */
+#auth-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#auth-logged-out { display: flex; align-items: center; }
+#auth-logged-in  { display: none; align-items: center; gap: 8px; }
+
+.btn-login {
+  background: white;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.btn-login:hover { background: var(--primary); color: white; }
+
+.btn-logout {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn-logout:hover { background: var(--border); }
+
+#user-nickname {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-admin-link {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn-admin-link:hover { background: var(--bg); }
+
 /* ─── Layout ─── */
 #app {
   display: flex;

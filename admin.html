@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 — 논알콜 술집 지도</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --primary:#2563eb; --primary-dark:#1d4ed8;
+      --accent:#10b981; --danger:#ef4444;
+      --bg:#f8fafc; --card:#ffffff;
+      --text:#1e293b; --muted:#64748b;
+      --border:#e2e8f0; --radius:12px;
+      --shadow:0 2px 8px rgba(0,0,0,.08);
+      --shadow-lg:0 8px 24px rgba(0,0,0,.12);
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+    /* ── 로그인 ── */
+    #login-wrap {
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .login-box {
+      background:var(--card); border-radius:16px; padding:40px 36px;
+      box-shadow:var(--shadow-lg); width:100%; max-width:360px; text-align:center;
+    }
+    .login-box .logo { font-size:40px; margin-bottom:12px; }
+    .login-box h2 { font-size:20px; font-weight:700; margin-bottom:8px; }
+    .login-box p { font-size:13px; color:var(--muted); margin-bottom:28px; }
+    .login-box input {
+      width:100%; padding:11px 14px; border:1px solid var(--border);
+      border-radius:8px; font-size:14px; outline:none; margin-bottom:10px;
+      transition:border-color .15s;
+    }
+    .login-box input:focus { border-color:var(--primary); }
+    .login-box .btn-submit {
+      width:100%; padding:12px; background:var(--primary); color:white;
+      border:none; border-radius:8px; font-size:14px; font-weight:600;
+      cursor:pointer; transition:background .15s; margin-top:4px;
+    }
+    .login-box .btn-submit:hover { background:var(--primary-dark); }
+    #login-error { color:var(--danger); font-size:13px; margin-top:10px; min-height:18px; }
+    .back-link { display:inline-block; margin-top:20px; font-size:13px; color:var(--muted); text-decoration:none; }
+    .back-link:hover { color:var(--primary); }
+
+    /* ── 관리자 대시보드 ── */
+    #admin-wrap { display:none; }
+    #admin-header {
+      position:sticky; top:0; z-index:10; background:var(--card);
+      border-bottom:1px solid var(--border); padding:0 24px;
+      height:56px; display:flex; align-items:center; gap:12px;
+      box-shadow:var(--shadow);
+    }
+    #admin-header h1 { font-size:17px; font-weight:700; }
+    #admin-header .spacer { flex:1; }
+    #admin-header .count { font-size:13px; color:var(--muted); }
+    #admin-header a { font-size:13px; color:var(--muted); text-decoration:none; padding:6px 10px; border:1px solid var(--border); border-radius:8px; }
+    #admin-header a:hover { background:var(--bg); }
+    #btn-logout {
+      padding:6px 12px; border:1px solid var(--border); border-radius:8px;
+      background:var(--bg); font-size:13px; cursor:pointer; color:var(--text);
+    }
+    #btn-logout:hover { background:var(--border); }
+
+    #admin-main { padding:24px; overflow-x:auto; }
+    #loading { text-align:center; padding:60px; color:var(--muted); }
+
+    table { width:100%; border-collapse:collapse; background:var(--card); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); min-width:900px; }
+    thead { background:#f1f5f9; }
+    th { padding:12px 14px; text-align:left; font-size:12px; font-weight:600; color:var(--muted); border-bottom:1px solid var(--border); white-space:nowrap; }
+    td { padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border); vertical-align:top; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:#f8fafc; }
+    .td-num { color:var(--muted); font-size:12px; width:36px; }
+    .td-name { font-weight:600; min-width:100px; }
+    .td-address { color:var(--muted); max-width:180px; line-height:1.4; }
+    .td-brands { min-width:160px; }
+    .td-desc { max-width:160px; color:var(--muted); line-height:1.4; }
+    .td-empty { text-align:center; padding:48px; color:var(--muted); }
+    .btag {
+      display:inline-block; background:#ecfdf5; color:#065f46;
+      border:1px solid #a7f3d0; border-radius:20px; padding:2px 7px;
+      font-size:11px; margin:2px 2px 2px 0;
+    }
+    .btn-del {
+      padding:4px 10px; background:white; color:var(--danger);
+      border:1px solid var(--danger); border-radius:6px; font-size:12px;
+      cursor:pointer; transition:all .15s; white-space:nowrap;
+    }
+    .btn-del:hover { background:var(--danger); color:white; }
+  </style>
+</head>
+<body>
+
+<!-- ── 로그인 ── -->
+<div id="login-wrap">
+  <div class="login-box">
+    <div class="logo">🍺</div>
+    <h2>관리자 로그인</h2>
+    <p>논알콜 술집 지도 관리자 페이지</p>
+    <form id="login-form">
+      <input type="text" id="input-id" placeholder="아이디" autocomplete="username" required />
+      <input type="password" id="input-pw" placeholder="비밀번호" autocomplete="current-password" required />
+      <div id="login-error"></div>
+      <button type="submit" class="btn-submit">로그인</button>
+    </form>
+    <a href="index.html" class="back-link">← 지도로 돌아가기</a>
+  </div>
+</div>
+
+<!-- ── 관리자 대시보드 ── -->
+<div id="admin-wrap">
+  <header id="admin-header">
+    <h1>🍺 논알콜 술집 지도 — 관리자</h1>
+    <div class="spacer"></div>
+    <span class="count" id="place-count"></span>
+    <a href="index.html">지도로 돌아가기</a>
+    <button id="btn-logout">로그아웃</button>
+  </header>
+  <main id="admin-main">
+    <div id="loading">데이터를 불러오는 중...</div>
+    <table id="places-table" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>가게명</th>
+          <th>주소</th>
+          <th>논알콜 종류</th>
+          <th>설명</th>
+          <th>전화</th>
+          <th>영업시간</th>
+          <th>추가한 사람</th>
+          <th>등록일</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+      <tbody id="places-tbody"></tbody>
+    </table>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+  const ADMIN_ID = "gunhwi1028";
+  const ADMIN_PW = "gnl243381";
+  let db;
+
+  // 세션 유지
+  if (sessionStorage.getItem("admin") === "1") showAdmin();
+
+  document.getElementById("login-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const id = document.getElementById("input-id").value.trim();
+    const pw = document.getElementById("input-pw").value;
+    if (id === ADMIN_ID && pw === ADMIN_PW) {
+      sessionStorage.setItem("admin", "1");
+      showAdmin();
+    } else {
+      document.getElementById("login-error").textContent = "아이디 또는 비밀번호가 틀렸습니다.";
+    }
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    sessionStorage.removeItem("admin");
+    location.reload();
+  });
+
+  function showAdmin() {
+    document.getElementById("login-wrap").style.display = "none";
+    document.getElementById("admin-wrap").style.display = "block";
+    try { firebase.initializeApp(FIREBASE_CONFIG); } catch(e) {}
+    db = firebase.firestore();
+    loadPlaces();
+  }
+
+  function loadPlaces() {
+    db.collection("places").orderBy("createdAt", "desc").onSnapshot((snap) => {
+      const places = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      document.getElementById("place-count").textContent = `총 ${places.length}개 가게`;
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("places-table").style.display = places.length ? "table" : "none";
+      renderTable(places);
+    }, (err) => {
+      document.getElementById("loading").textContent = "데이터 로드 실패: " + err.message;
+    });
+  }
+
+  function renderTable(places) {
+    const tbody = document.getElementById("places-tbody");
+    if (!places.length) {
+      tbody.innerHTML = `<tr><td colspan="10" class="td-empty">등록된 가게가 없습니다.</td></tr>`;
+      document.getElementById("places-table").style.display = "table";
+      return;
+    }
+    tbody.innerHTML = places.map((p, i) => `
+      <tr>
+        <td class="td-num">${i + 1}</td>
+        <td class="td-name">${h(p.name)}</td>
+        <td class="td-address">${h(p.address)}</td>
+        <td class="td-brands">${(p.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
+        <td class="td-desc">${h(p.description||"")}</td>
+        <td>${h(p.phone||"")}</td>
+        <td>${h(p.hours||"")}</td>
+        <td>${h(p.addedBy||"익명")}</td>
+        <td style="white-space:nowrap">${p.createdAt ? new Date(p.createdAt.seconds*1000).toLocaleDateString("ko-KR") : "-"}</td>
+        <td><button class="btn-del" onclick="del('${p.id}')">삭제</button></td>
+      </tr>
+    `).join("");
+  }
+
+  function del(id) {
+    if (!confirm("이 가게를 삭제하시겠습니까?")) return;
+    db.collection("places").doc(id).delete();
+  }
+
+  function h(s) {
+    if (!s) return "";
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+</script>
+</body>
+</html>

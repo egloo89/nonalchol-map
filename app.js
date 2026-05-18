@@ -3,14 +3,15 @@
 // =====================================================
 
 let map = null;
-let markers = [];       // CustomOverlay 마커
-let infoOverlays = [];  // CustomOverlay 정보창
+let markers = [];
+let infoOverlays = [];
 let places = [];
 let currentInfoWindow = null;
 let geocoderResult = null;
 let currentPoiPlace = null;
 let currentFilter = "전체";
 let currentSearch = "";
+let currentUser = null; // { uid, nickname }
 
 const BRANDS = [
   "하이네켄 제로 (0.0)", "카스 0.0", "클라우드 클리어 제로", "버드와이저 제로",
@@ -28,12 +29,90 @@ function initFirebase() {
   try {
     firebase.initializeApp(FIREBASE_CONFIG);
     window.db = firebase.firestore();
+    initAuth();
     return true;
   } catch (e) {
     showMapMessage("Firebase 설정 오류: firebase-config.js의 설정값을 확인해 주세요.", true);
     console.error(e);
     return false;
   }
+}
+
+// ─── 인증 (Google 로그인) ───────────────────────────
+
+function initAuth() {
+  const auth = firebase.auth();
+
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      const doc = await db.collection("users").doc(user.uid).get();
+      if (doc.exists && doc.data().nickname) {
+        currentUser = { uid: user.uid, nickname: doc.data().nickname };
+        updateAuthUI(currentUser.nickname);
+      } else {
+        showNicknameModal(user);
+      }
+    } else {
+      currentUser = null;
+      updateAuthUI(null);
+    }
+  });
+
+  document.getElementById("btn-login")?.addEventListener("click", async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+      await firebase.auth().signInWithPopup(provider);
+    } catch (e) {
+      console.error(e);
+      showToast("로그인 중 오류가 발생했습니다.", "error");
+    }
+  });
+
+  document.getElementById("btn-logout")?.addEventListener("click", () => {
+    firebase.auth().signOut();
+  });
+}
+
+function updateAuthUI(nickname) {
+  const loggedOut = document.getElementById("auth-logged-out");
+  const loggedIn = document.getElementById("auth-logged-in");
+  const nicknameEl = document.getElementById("user-nickname");
+  if (nickname) {
+    loggedOut.style.display = "none";
+    loggedIn.style.display = "flex";
+    if (nicknameEl) nicknameEl.textContent = `👤 ${nickname}`;
+  } else {
+    loggedOut.style.display = "flex";
+    loggedIn.style.display = "none";
+  }
+}
+
+function showNicknameModal(user) {
+  const overlay = document.getElementById("nickname-modal-overlay");
+  if (!overlay) return;
+  overlay.classList.add("active");
+  document.getElementById("input-nickname").value = "";
+
+  document.getElementById("btn-save-nickname").onclick = async () => {
+    const nickname = document.getElementById("input-nickname").value.trim();
+    if (nickname.length < 2) {
+      showToast("닉네임을 2자 이상 입력해 주세요.", "error");
+      return;
+    }
+    try {
+      await db.collection("users").doc(user.uid).set({
+        nickname,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      currentUser = { uid: user.uid, nickname };
+      updateAuthUI(nickname);
+      overlay.classList.remove("active");
+      showToast(`${nickname}님 환영합니다!`, "success");
+    } catch (e) {
+      console.error(e);
+      showToast("저장 중 오류가 발생했습니다.", "error");
+    }
+  };
 }
 
 // ─── 카카오맵 초기화 ───────────────────────────────
@@ -321,18 +400,19 @@ function updateCount(n) {
 
 function initBrandFilter() {
   const container = document.getElementById("brand-filter");
+  if (!container) return;
   const chips = ["전체", ...BRANDS];
   container.innerHTML = chips
-    .map((b) => `<button class="filter-chip${b === "전체" ? " active" : ""}" data-brand="${b}">${b}</button>`)
+    .map((b, i) => `<button type="button" class="filter-chip${i === 0 ? " active" : ""}" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`)
     .join("");
 
-  container.addEventListener("click", (e) => {
-    const chip = e.target.closest(".filter-chip");
-    if (!chip) return;
-    container.querySelectorAll(".filter-chip").forEach((c) => c.classList.remove("active"));
-    chip.classList.add("active");
-    currentFilter = chip.dataset.brand;
-    applyFilters();
+  container.querySelectorAll(".filter-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      container.querySelectorAll(".filter-chip").forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      currentFilter = chip.dataset.brand;
+      applyFilters();
+    });
   });
 }
 
@@ -351,7 +431,7 @@ function getFilteredPlaces() {
 
 function applyFilters() {
   const filtered = getFilteredPlaces();
-  renderMarkers(filtered);
+  if (map) renderMarkers(filtered);
   renderSidebar(filtered);
 }
 
@@ -373,6 +453,10 @@ function openModal() {
   updateCoordsDisplay(null, null);
   document.querySelectorAll(".brand-checkbox").forEach((el) => el.classList.remove("checked"));
   document.getElementById("brand-other-input").style.display = "none";
+  // 로그인된 경우 닉네임 자동 입력
+  if (currentUser?.nickname) {
+    document.getElementById("input-added-by").value = currentUser.nickname;
+  }
 }
 
 function closeModal() {
