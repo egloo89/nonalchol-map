@@ -156,6 +156,48 @@ body {
 }
 .btn-admin-link:hover { background: var(--bg); }
 
+/* ─── Auth Modal ─── */
+.btn-google-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  color: var(--text);
+}
+.btn-google-login:hover { background: var(--bg); border-color: #aaa; }
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+#auth-error {
+  color: var(--danger);
+  font-size: 12px;
+  min-height: 16px;
+  margin-top: 4px;
+}
+
 /* ─── Layout ─── */
 #app {
   display: flex;

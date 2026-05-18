@@ -38,7 +38,9 @@ function initFirebase() {
   }
 }
 
-// ─── 인증 (Google 로그인) ───────────────────────────
+// ─── 인증 ──────────────────────────────────────────
+
+let authMode = "login"; // "login" | "signup"
 
 function initAuth() {
   const auth = firebase.auth();
@@ -58,19 +60,100 @@ function initAuth() {
     }
   });
 
-  document.getElementById("btn-login")?.addEventListener("click", async () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
+  document.getElementById("btn-login")?.addEventListener("click", openAuthModal);
+  document.getElementById("btn-logout")?.addEventListener("click", () => firebase.auth().signOut());
+  document.getElementById("auth-modal-close")?.addEventListener("click", closeAuthModal);
+  document.getElementById("auth-modal-overlay")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeAuthModal();
+  });
+
+  // 구글 로그인
+  document.getElementById("btn-google-login")?.addEventListener("click", async () => {
+    setAuthError("");
     try {
-      await firebase.auth().signInWithPopup(provider);
+      await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      closeAuthModal();
     } catch (e) {
-      console.error(e);
-      showToast("로그인 중 오류가 발생했습니다.", "error");
+      setAuthError(getAuthErrorMsg(e.code));
     }
   });
 
-  document.getElementById("btn-logout")?.addEventListener("click", () => {
-    firebase.auth().signOut();
+  // 이메일 로그인/회원가입
+  document.getElementById("btn-email-submit")?.addEventListener("click", handleEmailAuth);
+  document.getElementById("auth-email")?.addEventListener("keydown", (e) => { if (e.key === "Enter") handleEmailAuth(); });
+  document.getElementById("auth-password")?.addEventListener("keydown", (e) => { if (e.key === "Enter") handleEmailAuth(); });
+  document.getElementById("auth-confirm")?.addEventListener("keydown", (e) => { if (e.key === "Enter") handleEmailAuth(); });
+
+  // 모드 토글
+  document.getElementById("btn-toggle-auth")?.addEventListener("click", () => {
+    authMode = authMode === "login" ? "signup" : "login";
+    updateAuthModalMode();
   });
+}
+
+function openAuthModal() {
+  authMode = "login";
+  updateAuthModalMode();
+  setAuthError("");
+  document.getElementById("auth-email").value = "";
+  document.getElementById("auth-password").value = "";
+  document.getElementById("auth-confirm").value = "";
+  document.getElementById("auth-modal-overlay").classList.add("active");
+}
+
+function closeAuthModal() {
+  document.getElementById("auth-modal-overlay").classList.remove("active");
+}
+
+function updateAuthModalMode() {
+  const isSignup = authMode === "signup";
+  document.getElementById("auth-modal-title").textContent = isSignup ? "회원가입" : "로그인";
+  document.getElementById("auth-confirm-group").style.display = isSignup ? "block" : "none";
+  document.getElementById("btn-email-submit").textContent = isSignup ? "회원가입" : "로그인";
+  document.getElementById("btn-toggle-auth").textContent = isSignup ? "이미 계정이 있어요 → 로그인" : "계정이 없으신가요? → 회원가입";
+  setAuthError("");
+}
+
+async function handleEmailAuth() {
+  const email = document.getElementById("auth-email").value.trim();
+  const password = document.getElementById("auth-password").value;
+  const confirm = document.getElementById("auth-confirm").value;
+  setAuthError("");
+
+  if (!email || !password) { setAuthError("이메일과 비밀번호를 입력해 주세요."); return; }
+
+  if (authMode === "signup") {
+    if (password.length < 6) { setAuthError("비밀번호는 6자 이상이어야 합니다."); return; }
+    if (password !== confirm) { setAuthError("비밀번호가 일치하지 않습니다."); return; }
+    try {
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
+      closeAuthModal();
+    } catch (e) { setAuthError(getAuthErrorMsg(e.code)); }
+  } else {
+    try {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+      closeAuthModal();
+    } catch (e) { setAuthError(getAuthErrorMsg(e.code)); }
+  }
+}
+
+function setAuthError(msg) {
+  const el = document.getElementById("auth-error");
+  if (el) el.textContent = msg;
+}
+
+function getAuthErrorMsg(code) {
+  const map = {
+    "auth/email-already-in-use": "이미 사용 중인 이메일입니다.",
+    "auth/wrong-password": "비밀번호가 틀렸습니다.",
+    "auth/invalid-credential": "이메일 또는 비밀번호가 틀렸습니다.",
+    "auth/user-not-found": "등록된 계정이 없습니다.",
+    "auth/weak-password": "비밀번호는 6자 이상이어야 합니다.",
+    "auth/invalid-email": "올바른 이메일 형식이 아닙니다.",
+    "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
+    "auth/popup-closed-by-user": "로그인이 취소되었습니다.",
+  };
+  return map[code] || "오류가 발생했습니다. 다시 시도해 주세요.";
 }
 
 function updateAuthUI(nickname) {
