@@ -60,6 +60,7 @@
         placeholder="가게 이름, 주소, 맥주 브랜드 검색..."
       />
     </div>
+    <div id="brand-filter"></div>
     <div id="place-list">
       <div id="empty-state">
         <div class="icon">⏳</div>
@@ -112,27 +113,36 @@
 
         <div class="form-group">
           <label>
-            논알콜 맥주 종류 <span class="required">*</span>
+            논알콜 음료 종류 <span class="required">*</span>
             <span class="hint">파는 것 모두 선택</span>
           </label>
           <div class="brands-grid">
             <label class="brand-checkbox" data-value="하이네켄 0.0">
               <input type="checkbox" /><span class="cb-icon">🟢</span> 하이네켄 0.0
             </label>
-            <label class="brand-checkbox" data-value="버드와이저 제로">
-              <input type="checkbox" /><span class="cb-icon">🔴</span> 버드와이저 제로
+            <label class="brand-checkbox" data-value="카스 0.0">
+              <input type="checkbox" /><span class="cb-icon">🔵</span> 카스 0.0
             </label>
             <label class="brand-checkbox" data-value="클라우드 클리어 제로">
               <input type="checkbox" /><span class="cb-icon">🟡</span> 클라우드 클리어 제로
             </label>
-            <label class="brand-checkbox" data-value="카스 0.0">
-              <input type="checkbox" /><span class="cb-icon">🔵</span> 카스 0.0
+            <label class="brand-checkbox" data-value="버드와이저 제로">
+              <input type="checkbox" /><span class="cb-icon">🔴</span> 버드와이저 제로
+            </label>
+            <label class="brand-checkbox" data-value="에딩거 알코홀프라이">
+              <input type="checkbox" /><span class="cb-icon">⚪</span> 에딩거 알코홀프라이
             </label>
             <label class="brand-checkbox" data-value="칭따오 논알콜">
               <input type="checkbox" /><span class="cb-icon">🟤</span> 칭따오 논알콜
             </label>
-            <label class="brand-checkbox" data-value="에딩거 알코홀프라이">
-              <input type="checkbox" /><span class="cb-icon">⚪</span> 에딩거 알코홀프라이
+            <label class="brand-checkbox" data-value="아사히 드라이 제로">
+              <input type="checkbox" /><span class="cb-icon">🔶</span> 아사히 드라이 제로
+            </label>
+            <label class="brand-checkbox" data-value="산토리 올프리">
+              <input type="checkbox" /><span class="cb-icon">🟠</span> 산토리 올프리
+            </label>
+            <label class="brand-checkbox" data-value="논알콜 칵테일">
+              <input type="checkbox" /><span class="cb-icon">🍹</span> 논알콜 칵테일
             </label>
             <label class="brand-checkbox" data-value="기타">
               <input type="checkbox" /><span class="cb-icon">➕</span> 기타

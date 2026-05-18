@@ -119,7 +119,40 @@ body {
 
 #sidebar-header {
   padding: 14px 16px;
+  border-bottom: none;
+}
+
+#brand-filter {
+  display: flex;
+  gap: 6px;
+  padding: 8px 16px 10px;
+  overflow-x: auto;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#brand-filter::-webkit-scrollbar { height: 3px; }
+#brand-filter::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card-bg);
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filter-chip:hover { border-color: var(--primary); color: var(--primary); }
+.filter-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  font-weight: 600;
 }
 
 #search-input {
@@ -266,6 +299,22 @@ body {
   font-size: 11px;
 }
 .info-window a:hover { text-decoration: underline; }
+
+.btn-register-nonalcohol {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-register-nonalcohol:hover { background: var(--primary-dark); }
 
 .info-window .iw-name {
   font-size: 16px;

@@ -8,6 +8,15 @@ let infoOverlays = [];  // CustomOverlay 정보창
 let places = [];
 let currentInfoWindow = null;
 let geocoderResult = null;
+let currentPoiPlace = null;
+let currentFilter = "전체";
+let currentSearch = "";
+
+const BRANDS = [
+  "하이네켄 0.0", "카스 0.0", "클라우드 클리어 제로", "버드와이저 제로",
+  "에딩거 알코홀프라이", "칭따오 논알콜", "아사히 드라이 제로",
+  "산토리 올프리", "논알콜 칵테일", "기타",
+];
 
 // ─── Firebase 초기화 ───────────────────────────────
 
@@ -47,6 +56,7 @@ function initMap() {
   });
 
   hideMapMessage();
+  initBrandFilter();
   loadPlaces();
 }
 
@@ -61,22 +71,33 @@ function closeInfoWindow() {
 
 function searchAndShowPoiInfo(latlng) {
   if (!window.kakao?.maps?.services) return;
+  // 줌 레벨에 따른 검색 반경 조정 (정확도 향상)
+  const levelRadii = { 1: 8, 2: 12, 3: 18, 4: 24, 5: 30, 6: 40, 7: 50 };
+  const radius = levelRadii[map.getLevel()] ?? 30;
+
   const ps = new kakao.maps.services.Places();
   ps.categorySearch("FD6", (data, status) => {
     if (status === kakao.maps.services.Status.OK && data.length > 0) {
-      const place = data[0];
-      showPoiInfoWindow(place, new kakao.maps.LatLng(place.y, place.x));
+      showPoiInfoWindow(data[0], new kakao.maps.LatLng(data[0].y, data[0].x));
     }
-  }, { location: latlng, radius: 35, sort: kakao.maps.services.SortBy.DISTANCE });
+  }, { location: latlng, radius, sort: kakao.maps.services.SortBy.DISTANCE });
 }
 
 function showPoiInfoWindow(place, position) {
+  currentPoiPlace = place;
   const infoEl = document.createElement("div");
   infoEl.innerHTML = buildPoiContent(place);
+
   infoEl.querySelector(".iw-close")?.addEventListener("click", (e) => {
     e.stopPropagation();
     kakao.maps.event.preventMap();
     closeInfoWindow();
+  });
+  infoEl.querySelector(".btn-register-nonalcohol")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    kakao.maps.event.preventMap();
+    closeInfoWindow();
+    openModalWithPlaceData(place);
   });
 
   const overlay = new kakao.maps.CustomOverlay({
@@ -106,8 +127,18 @@ function buildPoiContent(place) {
       <div class="iw-address">📍 ${address}</div>
       ${phone ? `<div class="iw-meta">📞 ${phone}</div>` : ""}
       ${url ? `<div class="iw-meta"><a href="${url}" target="_blank" rel="noopener">카카오맵에서 보기 →</a></div>` : ""}
+      <button class="btn-register-nonalcohol">🍺 논알콜 등록하기</button>
     </div>
   `;
+}
+
+function openModalWithPlaceData(place) {
+  openModal();
+  document.getElementById("input-name").value = place.place_name || "";
+  document.getElementById("input-address").value = place.road_address_name || place.address_name || "";
+  if (place.phone) document.getElementById("input-phone").value = place.phone;
+  geocoderResult = { lat: parseFloat(place.y), lng: parseFloat(place.x) };
+  updateCoordsDisplay(geocoderResult.lat, geocoderResult.lng);
 }
 
 // ─── Firestore: 가게 불러오기 ──────────────────────
@@ -117,9 +148,8 @@ function loadPlaces() {
     .orderBy("createdAt", "desc")
     .onSnapshot((snapshot) => {
       places = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      renderMarkers();
-      renderSidebar(places);
       updateCount(places.length);
+      applyFilters();
     }, (err) => {
       console.error("데이터 불러오기 실패:", err);
       showToast("데이터를 불러오는 중 오류가 발생했습니다.", "error");
@@ -287,23 +317,49 @@ function updateCount(n) {
   if (el) el.textContent = `${n}개 가게`;
 }
 
+// ─── 브랜드 필터 ───────────────────────────────────
+
+function initBrandFilter() {
+  const container = document.getElementById("brand-filter");
+  const chips = ["전체", ...BRANDS];
+  container.innerHTML = chips
+    .map((b) => `<button class="filter-chip${b === "전체" ? " active" : ""}" data-brand="${b}">${b}</button>`)
+    .join("");
+
+  container.addEventListener("click", (e) => {
+    const chip = e.target.closest(".filter-chip");
+    if (!chip) return;
+    container.querySelectorAll(".filter-chip").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    currentFilter = chip.dataset.brand;
+    applyFilters();
+  });
+}
+
+function getFilteredPlaces() {
+  return places.filter((p) => {
+    const matchesBrand = currentFilter === "전체" || (p.brands || []).includes(currentFilter);
+    const q = currentSearch;
+    const matchesSearch =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.address.toLowerCase().includes(q) ||
+      (p.brands || []).some((b) => b.toLowerCase().includes(q));
+    return matchesBrand && matchesSearch;
+  });
+}
+
+function applyFilters() {
+  const filtered = getFilteredPlaces();
+  renderMarkers(filtered);
+  renderSidebar(filtered);
+}
+
 // ─── 검색 ──────────────────────────────────────────
 
 document.getElementById("search-input").addEventListener("input", function () {
-  const q = this.value.trim().toLowerCase();
-  if (!q) {
-    renderMarkers();
-    renderSidebar(places);
-    return;
-  }
-  const filtered = places.filter(
-    (p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.address.toLowerCase().includes(q) ||
-      (p.brands || []).some((b) => b.toLowerCase().includes(q))
-  );
-  renderMarkers(filtered);
-  renderSidebar(filtered);
+  currentSearch = this.value.trim().toLowerCase();
+  applyFilters();
 });
 
 // ─── 가게 추가 모달 ────────────────────────────────
