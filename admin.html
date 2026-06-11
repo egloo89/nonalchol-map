@@ -149,14 +149,14 @@
   let db;
 
   // 세션 유지
-  if (sessionStorage.getItem("admin") === "1") showAdmin();
+  if (localStorage.getItem("admin") === "1") showAdmin();
 
   document.getElementById("login-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const id = document.getElementById("input-id").value.trim();
     const pw = document.getElementById("input-pw").value;
     if (id === ADMIN_ID && pw === ADMIN_PW) {
-      sessionStorage.setItem("admin", "1");
+      localStorage.setItem("admin", "1");
       showAdmin();
     } else {
       document.getElementById("login-error").textContent = "아이디 또는 비밀번호가 틀렸습니다.";
@@ -164,7 +164,7 @@
   });
 
   document.getElementById("btn-logout").addEventListener("click", () => {
-    sessionStorage.removeItem("admin");
+    localStorage.removeItem("admin");
     location.reload();
   });
 
