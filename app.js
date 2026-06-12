@@ -587,7 +587,8 @@ document.getElementById("modal-overlay").addEventListener("click", (e) => {
 });
 
 document.querySelectorAll(".brand-checkbox").forEach((el) => {
-  el.addEventListener("click", () => {
+  el.addEventListener("click", (e) => {
+    e.preventDefault();
     el.classList.toggle("checked");
     if (el.dataset.value === "기타") {
       document.getElementById("brand-other-input").style.display =
@@ -722,7 +723,8 @@ function initReportModal() {
     .join("");
 
   document.querySelectorAll("#report-brands .brand-checkbox").forEach((el) => {
-    el.addEventListener("click", () => {
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
       el.classList.toggle("checked");
       if (el.dataset.value === "기타") {
         document.getElementById("report-other-input").style.display =
