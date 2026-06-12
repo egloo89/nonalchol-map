@@ -218,7 +218,6 @@ function initMap() {
   });
 
   hideMapMessage();
-  initBrandFilter();
   loadPlaces();
 }
 
@@ -425,12 +424,20 @@ function renderSidebar(list) {
   const container = document.getElementById("place-list");
 
   if (list.length === 0) {
-    container.innerHTML = `
+    const isFiltering = currentFilter !== "전체" || currentSearch;
+    container.innerHTML = isFiltering
+      ? `
+      <div id="empty-state">
+        <div class="icon">🔍</div>
+        <p>조건에 맞는 가게가 없어요.<br>다른 브랜드를 선택하거나<br>필터를 초기화해 보세요.</p>
+      </div>
+      `
+      : `
       <div id="empty-state">
         <div class="icon">🗺️</div>
         <p>아직 등록된 가게가 없어요.<br>논알콜 맥주를 파는 술집을<br>첫 번째로 추가해 보세요!</p>
       </div>
-    `;
+      `;
     return;
   }
 
@@ -516,6 +523,42 @@ function applyFilters() {
   const filtered = getFilteredPlaces();
   if (map) renderMarkers(filtered);
   renderSidebar(filtered);
+  updateFilterStatus(filtered.length);
+}
+
+// 적용 중인 필터를 사이드바 상단에 표시
+function updateFilterStatus(shownCount) {
+  const el = document.getElementById("filter-status");
+  if (!el) return;
+
+  const hasFilter = currentFilter !== "전체" || currentSearch;
+  if (!hasFilter) {
+    el.style.display = "none";
+    updateCount(places.length);
+    return;
+  }
+
+  const parts = [];
+  if (currentFilter !== "전체") parts.push(`<span class="fs-tag">🏷️ ${escapeHtml(currentFilter)}</span>`);
+  if (currentSearch) parts.push(`<span class="fs-tag">🔍 "${escapeHtml(currentSearch)}"</span>`);
+
+  el.innerHTML = `
+    <div class="fs-info">${parts.join("")}<span class="fs-count">${shownCount}개 표시</span></div>
+    <button type="button" id="btn-clear-filter">초기화 ✕</button>
+  `;
+  el.style.display = "flex";
+  document.getElementById("btn-clear-filter").addEventListener("click", clearFilters);
+  updateCount(shownCount);
+}
+
+function clearFilters() {
+  currentFilter = "전체";
+  currentSearch = "";
+  document.getElementById("search-input").value = "";
+  document.querySelectorAll("#brand-filter .filter-chip").forEach((c) => {
+    c.classList.toggle("active", c.dataset.brand === "전체");
+  });
+  applyFilters();
 }
 
 // ─── 검색 ──────────────────────────────────────────
@@ -707,5 +750,6 @@ function escapeHtml(str) {
 
 window.onload = function () {
   initFirebase();
+  initBrandFilter(); // 지도 로드와 무관하게 필터는 항상 표시
   // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };
