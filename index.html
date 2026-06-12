@@ -57,6 +57,7 @@
     </div>
   </div>
   <a href="admin.html" class="btn-admin-link">관리자</a>
+  <button id="btn-report-place">📢 가게 제보</button>
   <button id="btn-add-place">＋ 가게 추가</button>
 </header>
 
@@ -191,6 +192,67 @@
       <div class="modal-footer">
         <button type="button" class="btn-cancel" id="btn-cancel">취소</button>
         <button type="submit" class="btn-submit" id="btn-submit">가게 등록하기</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ─── 가게 제보 모달 ─── -->
+<div id="report-modal-overlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+
+    <div class="modal-header">
+      <h2 id="report-modal-title">📢 논알콜 가게 제보하기</h2>
+      <button class="modal-close" id="report-modal-close" aria-label="닫기">✕</button>
+    </div>
+
+    <form id="report-form">
+      <div class="modal-body">
+        <p class="report-guide">
+          논알콜 맥주·칵테일을 파는 가게를 알고 계신가요?<br>
+          제보해 주시면 관리자 확인 후 지도에 <b>NON</b> 마커로 표시됩니다.
+        </p>
+
+        <div class="form-group">
+          <label for="report-name">가게 이름 <span class="required">*</span></label>
+          <input id="report-name" type="text" placeholder="예: 어반플레이스 홍대점" required maxlength="60" />
+        </div>
+
+        <div class="form-group">
+          <label for="report-address">
+            가게 주소 <span class="required">*</span>
+            <span class="hint">도로명 또는 지번 주소</span>
+          </label>
+          <div class="address-row">
+            <input id="report-address" type="text" placeholder="예: 서울 마포구 홍익로 5길 20" required maxlength="150" />
+            <button type="button" id="btn-report-address">주소 확인</button>
+          </div>
+          <div class="coords-display" id="report-coords-display">
+            주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>
+            파는 논알콜 종류 <span class="required">*</span>
+            <span class="hint">아는 것만 선택해도 OK</span>
+          </label>
+          <div class="brands-grid" id="report-brands"></div>
+          <div id="report-other-input" style="display:none; margin-top:8px;">
+            <input id="report-other-brand" type="text" placeholder="브랜드 이름을 직접 입력" maxlength="40" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="report-comment">한마디 <span class="hint">선택</span></label>
+          <textarea id="report-comment" placeholder="예: 하이네켄 제로 항상 냉장 보관돼 있어요!" maxlength="200"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" id="btn-report-cancel">취소</button>
+        <button type="submit" class="btn-submit" id="btn-report-submit">제보하기</button>
       </div>
     </form>
 

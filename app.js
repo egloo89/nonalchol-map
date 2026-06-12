@@ -345,21 +345,12 @@ function renderMarkers(filtered) {
 
     const position = new kakao.maps.LatLng(place.lat, place.lng);
 
-    // 핀 마커 (CustomOverlay)
+    // NON 핀 마커 (CustomOverlay)
     const markerEl = document.createElement("div");
     markerEl.innerHTML = `
-      <div style="
-        background:#2563eb; color:white;
-        width:38px; height:38px;
-        border-radius:50% 50% 50% 0;
-        display:flex; align-items:center; justify-content:center;
-        font-size:20px;
-        box-shadow:0 2px 8px rgba(37,99,235,0.5);
-        transform:rotate(-45deg);
-        border:2px solid white;
-        cursor:pointer;
-      ">
-        <span style="transform:rotate(45deg)">🍺</span>
+      <div class="non-marker">
+        <div class="non-pin">NON</div>
+        <div class="non-tail"></div>
       </div>
     `;
 
@@ -712,6 +703,150 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
   }
 });
 
+// ─── 가게 제보 ─────────────────────────────────────
+
+let reportGeocoderResult = null;
+
+function initReportModal() {
+  const overlay = document.getElementById("report-modal-overlay");
+  if (!overlay) return;
+
+  // 브랜드 체크박스 동적 생성
+  const icons = ["🟢","🔵","🟡","🔴","⚪","🟤","🔶","🟠","🍹","➕"];
+  document.getElementById("report-brands").innerHTML = BRANDS
+    .map((b, i) => `
+      <label class="brand-checkbox" data-value="${escapeHtml(b)}">
+        <input type="checkbox" /><span class="cb-icon">${icons[i] || "🍺"}</span> ${escapeHtml(b)}
+      </label>
+    `)
+    .join("");
+
+  document.querySelectorAll("#report-brands .brand-checkbox").forEach((el) => {
+    el.addEventListener("click", () => {
+      el.classList.toggle("checked");
+      if (el.dataset.value === "기타") {
+        document.getElementById("report-other-input").style.display =
+          el.classList.contains("checked") ? "block" : "none";
+      }
+    });
+  });
+
+  document.getElementById("btn-report-place").addEventListener("click", openReportModal);
+  document.getElementById("report-modal-close").addEventListener("click", closeReportModal);
+  document.getElementById("btn-report-cancel").addEventListener("click", closeReportModal);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeReportModal();
+  });
+
+  // 주소 확인
+  document.getElementById("btn-report-address").addEventListener("click", () => {
+    const address = document.getElementById("report-address").value.trim();
+    if (!address) {
+      showToast("주소를 먼저 입력해 주세요.");
+      return;
+    }
+    const btn = document.getElementById("btn-report-address");
+    btn.textContent = "검색 중...";
+    btn.disabled = true;
+
+    const geocoder = new kakao.maps.services.Geocoder();
+    geocoder.addressSearch(address, (result, status) => {
+      btn.textContent = "주소 확인";
+      btn.disabled = false;
+      const el = document.getElementById("report-coords-display");
+      if (status === kakao.maps.services.Status.OK && result.length > 0) {
+        reportGeocoderResult = {
+          lat: parseFloat(result[0].y),
+          lng: parseFloat(result[0].x),
+        };
+        el.innerHTML = `위치 확인됨 → <span>위도 ${reportGeocoderResult.lat.toFixed(5)}, 경도 ${reportGeocoderResult.lng.toFixed(5)}</span>`;
+        el.style.borderColor = "#10b981";
+        showToast("주소 확인 완료!", "success");
+      } else {
+        reportGeocoderResult = null;
+        el.innerHTML = "주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.";
+        el.style.borderColor = "";
+        showToast("주소를 찾을 수 없습니다. 더 구체적으로 입력해 주세요.", "error");
+      }
+    });
+  });
+
+  // 제보 제출
+  document.getElementById("report-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("report-name").value.trim();
+    const address = document.getElementById("report-address").value.trim();
+
+    if (!name || !address) {
+      showToast("가게 이름과 주소는 필수입니다.", "error");
+      return;
+    }
+    if (!reportGeocoderResult) {
+      showToast("주소 확인 버튼을 눌러 위치를 확인해 주세요.", "error");
+      return;
+    }
+
+    const brands = [];
+    document.querySelectorAll("#report-brands .brand-checkbox.checked").forEach((el) => {
+      const val = el.dataset.value;
+      if (val === "기타") {
+        const custom = document.getElementById("report-other-brand").value.trim();
+        if (custom) brands.push(custom);
+      } else {
+        brands.push(val);
+      }
+    });
+
+    if (brands.length === 0) {
+      showToast("논알콜 종류를 1개 이상 선택해 주세요.", "error");
+      return;
+    }
+
+    const btn = document.getElementById("btn-report-submit");
+    btn.textContent = "제보 중...";
+    btn.disabled = true;
+
+    try {
+      await db.collection("reports").add({
+        name,
+        address,
+        lat: reportGeocoderResult.lat,
+        lng: reportGeocoderResult.lng,
+        brands,
+        comment: document.getElementById("report-comment").value.trim(),
+        reportedBy: currentUser?.nickname || "익명",
+        status: "pending",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      closeReportModal();
+      showToast("제보 완료! 관리자 확인 후 지도에 표시됩니다. 🙏", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("제보 중 오류가 발생했습니다. 다시 시도해 주세요.", "error");
+    } finally {
+      btn.textContent = "제보하기";
+      btn.disabled = false;
+    }
+  });
+}
+
+function openReportModal() {
+  document.getElementById("report-form").reset();
+  reportGeocoderResult = null;
+  const el = document.getElementById("report-coords-display");
+  el.innerHTML = "주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.";
+  el.style.borderColor = "";
+  document.querySelectorAll("#report-brands .brand-checkbox").forEach((c) => c.classList.remove("checked"));
+  document.getElementById("report-other-input").style.display = "none";
+  document.getElementById("report-modal-overlay").classList.add("active");
+}
+
+function closeReportModal() {
+  document.getElementById("report-modal-overlay").classList.remove("active");
+}
+
 // ─── Toast ─────────────────────────────────────────
 
 function showToast(msg, type = "") {
@@ -751,5 +886,6 @@ function escapeHtml(str) {
 window.onload = function () {
   initFirebase();
   initBrandFilter(); // 지도 로드와 무관하게 필터는 항상 표시
+  initReportModal();
   // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };

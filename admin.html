@@ -89,6 +89,28 @@
       cursor:pointer; transition:all .15s; white-space:nowrap;
     }
     .btn-del:hover { background:var(--danger); color:white; }
+
+    /* ── 탭 ── */
+    .tabs { display:flex; gap:8px; margin-bottom:16px; }
+    .tab {
+      padding:8px 16px; border:1px solid var(--border); border-radius:8px;
+      background:var(--card); font-size:13px; font-weight:600; cursor:pointer;
+      color:var(--muted); transition:all .15s; display:flex; align-items:center; gap:6px;
+    }
+    .tab:hover { border-color:var(--primary); color:var(--primary); }
+    .tab.active { background:var(--primary); border-color:var(--primary); color:white; }
+    .tab .badge {
+      background:var(--danger); color:white; border-radius:10px;
+      padding:1px 7px; font-size:11px; font-weight:700;
+    }
+    .tab.active .badge { background:white; color:var(--danger); }
+
+    .btn-approve {
+      padding:4px 10px; background:var(--accent); color:white;
+      border:none; border-radius:6px; font-size:12px;
+      cursor:pointer; transition:opacity .15s; white-space:nowrap; margin-right:4px;
+    }
+    .btn-approve:hover { opacity:.85; }
   </style>
 </head>
 <body>
@@ -119,24 +141,50 @@
     <button id="btn-logout">로그아웃</button>
   </header>
   <main id="admin-main">
+    <div class="tabs">
+      <button class="tab active" id="tab-places">등록된 가게</button>
+      <button class="tab" id="tab-reports">제보 대기 <span class="badge" id="report-badge" style="display:none">0</span></button>
+    </div>
+
     <div id="loading">데이터를 불러오는 중...</div>
-    <table id="places-table" style="display:none">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>가게명</th>
-          <th>주소</th>
-          <th>논알콜 종류</th>
-          <th>설명</th>
-          <th>전화</th>
-          <th>영업시간</th>
-          <th>추가한 사람</th>
-          <th>등록일</th>
-          <th>관리</th>
-        </tr>
-      </thead>
-      <tbody id="places-tbody"></tbody>
-    </table>
+
+    <section id="section-places">
+      <table id="places-table" style="display:none">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>가게명</th>
+            <th>주소</th>
+            <th>논알콜 종류</th>
+            <th>설명</th>
+            <th>전화</th>
+            <th>영업시간</th>
+            <th>추가한 사람</th>
+            <th>등록일</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="places-tbody"></tbody>
+      </table>
+    </section>
+
+    <section id="section-reports" style="display:none">
+      <table id="reports-table" style="display:none">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>가게명</th>
+            <th>주소</th>
+            <th>논알콜 종류</th>
+            <th>한마디</th>
+            <th>제보자</th>
+            <th>제보일</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="reports-tbody"></tbody>
+      </table>
+    </section>
   </main>
 </div>
 
@@ -145,7 +193,7 @@
 <script src="firebase-config.js"></script>
 <script>
   const ADMIN_ID = "gunhwi1028";
-  const ADMIN_PW = "gnl243381";
+  const ADMIN_PW = "gnl243381!!";
   let db;
 
   // 세션 유지
@@ -174,6 +222,22 @@
     try { firebase.initializeApp(FIREBASE_CONFIG); } catch(e) {}
     db = firebase.firestore();
     loadPlaces();
+    loadReports();
+    initTabs();
+  }
+
+  function initTabs() {
+    const tabPlaces = document.getElementById("tab-places");
+    const tabReports = document.getElementById("tab-reports");
+    tabPlaces.addEventListener("click", () => switchTab("places"));
+    tabReports.addEventListener("click", () => switchTab("reports"));
+  }
+
+  function switchTab(name) {
+    document.getElementById("tab-places").classList.toggle("active", name === "places");
+    document.getElementById("tab-reports").classList.toggle("active", name === "reports");
+    document.getElementById("section-places").style.display = name === "places" ? "block" : "none";
+    document.getElementById("section-reports").style.display = name === "reports" ? "block" : "none";
   }
 
   function loadPlaces() {
@@ -214,6 +278,88 @@
   function del(id) {
     if (!confirm("이 가게를 삭제하시겠습니까?")) return;
     db.collection("places").doc(id).delete();
+  }
+
+  // ── 제보 관리 ──
+  let reportsCache = [];
+
+  function loadReports() {
+    db.collection("reports").where("status", "==", "pending").onSnapshot((snap) => {
+      reportsCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      reportsCache.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      const badge = document.getElementById("report-badge");
+      badge.textContent = reportsCache.length;
+      badge.style.display = reportsCache.length ? "inline-block" : "none";
+
+      renderReports(reportsCache);
+    }, (err) => {
+      console.error("제보 로드 실패:", err);
+    });
+  }
+
+  function renderReports(reports) {
+    const table = document.getElementById("reports-table");
+    const tbody = document.getElementById("reports-tbody");
+    table.style.display = "table";
+
+    if (!reports.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="td-empty">대기 중인 제보가 없습니다.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = reports.map((r, i) => `
+      <tr>
+        <td class="td-num">${i + 1}</td>
+        <td class="td-name">${h(r.name)}</td>
+        <td class="td-address">${h(r.address)}</td>
+        <td class="td-brands">${(r.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
+        <td class="td-desc">${h(r.comment||"")}</td>
+        <td>${h(r.reportedBy||"익명")}</td>
+        <td style="white-space:nowrap">${r.createdAt ? new Date(r.createdAt.seconds*1000).toLocaleDateString("ko-KR") : "-"}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-approve" onclick="approveReport('${r.id}')">✓ 승인</button>
+          <button class="btn-del" onclick="rejectReport('${r.id}')">거절</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function approveReport(id) {
+    const r = reportsCache.find((x) => x.id === id);
+    if (!r) return;
+    if (!confirm(`'${r.name}' 가게를 승인하여 지도에 표시하시겠습니까?`)) return;
+
+    try {
+      await db.collection("places").add({
+        name: r.name,
+        address: r.address,
+        lat: r.lat,
+        lng: r.lng,
+        brands: r.brands || [],
+        description: r.comment || "",
+        phone: "",
+        hours: "",
+        addedBy: r.reportedBy || "익명",
+        source: "report",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      await db.collection("reports").doc(id).update({ status: "approved" });
+      alert(`'${r.name}' 승인 완료! 지도에 NON 마커로 표시됩니다.`);
+    } catch (e) {
+      console.error(e);
+      alert("승인 중 오류가 발생했습니다: " + e.message);
+    }
+  }
+
+  async function rejectReport(id) {
+    if (!confirm("이 제보를 거절하시겠습니까?")) return;
+    try {
+      await db.collection("reports").doc(id).update({ status: "rejected" });
+    } catch (e) {
+      console.error(e);
+      alert("처리 중 오류가 발생했습니다: " + e.message);
+    }
   }
 
   function h(s) {

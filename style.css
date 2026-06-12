@@ -98,6 +98,66 @@ body {
 
 #btn-add-place:hover { background: var(--primary-dark); }
 
+#btn-report-place {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+#btn-report-place:hover { background: #059669; }
+
+/* ─── NON 마커 ─── */
+.non-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.non-pin {
+  background: var(--primary);
+  color: white;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 5px 9px;
+  border-radius: 10px;
+  border: 2px solid white;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
+  transition: transform 0.15s;
+}
+
+.non-marker:hover .non-pin { transform: scale(1.1); }
+
+.non-tail {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--primary);
+  margin-top: -2px;
+  filter: drop-shadow(0 2px 2px rgba(37, 99, 235, 0.3));
+}
+
+.report-guide {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+.report-guide b { color: var(--primary); }
+
 /* ─── Auth UI ─── */
 #auth-section {
   display: flex;
