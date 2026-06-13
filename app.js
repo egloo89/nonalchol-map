@@ -16,10 +16,10 @@ let currentUser = null; // { uid, nickname }
 const BRANDS = [
   "논알콜 맥주 (종류 무관)",
   "논알콜 칵테일 (종류 무관)",
+  "하이네켄 제로 (0.0)",
   "하이트 제로 (0.00)",
   "카스 제로 (0.0)",
   "클라우드 클리어 제로",
-  "하이네켄 제로 (0.0)",
   "버드와이저 제로",
   "칼스버그 0.0",
   "코로나 선플로우 (Sunbrew)",
@@ -513,17 +513,26 @@ function updateCount(n) {
 // ─── 브랜드 필터 ───────────────────────────────────
 
 
+const FILTER_PREVIEW = 4; // 전체 + 논알콜 맥주, 논알콜 칵테일, 하이네켄 제로
+
 function initBrandFilter() {
   const container = document.getElementById("brand-filter");
   if (!container) return;
   const chips = ["전체", ...BRANDS];
-  container.innerHTML = chips
-    .map((b, i) => `
-      <button type="button" class="filter-chip${i === 0 ? " active" : ""}${i === 0 ? " chip-all" : ""}" data-brand="${escapeHtml(b)}">
+  let expanded = false;
+  const hiddenCount = chips.length - FILTER_PREVIEW;
+
+  container.innerHTML =
+    chips.map((b, i) => `
+      <button type="button"
+        class="filter-chip${i === 0 ? " active chip-all" : ""}${i >= FILTER_PREVIEW ? " chip-collapsed" : ""}"
+        data-brand="${escapeHtml(b)}">
         <span class="chip-icon">${BRAND_ICONS[b] || "🍺"}</span>
         <span class="chip-label">${escapeHtml(b)}</span>
-      </button>`)
-    .join("");
+      </button>`).join("") +
+    `<button type="button" id="filter-toggle" class="filter-toggle">
+       <span id="filter-toggle-text">+ ${hiddenCount}개 더 보기</span>
+     </button>`;
 
   container.querySelectorAll(".filter-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
@@ -533,6 +542,18 @@ function initBrandFilter() {
       applyFilters();
     });
   });
+
+  document.getElementById("filter-toggle").addEventListener("click", () => {
+    expanded = !expanded;
+    container.querySelectorAll(".chip-collapsed").forEach((c) => {
+      c.style.display = expanded ? "" : "none";
+    });
+    document.getElementById("filter-toggle-text").textContent =
+      expanded ? "▲ 접기" : `+ ${hiddenCount}개 더 보기`;
+  });
+
+  // 초기 숨김
+  container.querySelectorAll(".chip-collapsed").forEach((c) => { c.style.display = "none"; });
 }
 
 function getFilteredPlaces() {

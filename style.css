@@ -368,6 +368,26 @@ body {
   content: "✓ ";
 }
 
+#filter-toggle {
+  grid-column: 1 / -1;
+  padding: 7px;
+  background: var(--bg);
+  border: 1.5px dashed var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+#filter-toggle:hover {
+  background: #eff6ff;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 /* ─── 필터 상태 바 ─── */
 #filter-status {
   display: none;
