@@ -479,12 +479,30 @@ function updateCount(n) {
 
 // ─── 브랜드 필터 ───────────────────────────────────
 
+const BRAND_ICONS = {
+  "전체": "🍺",
+  "하이네켄 제로 (0.0)": "🟢",
+  "카스 0.0": "🔵",
+  "클라우드 클리어 제로": "🟡",
+  "버드와이저 제로": "🔴",
+  "에딩거 알코홀프라이": "⚪",
+  "칭따오 논알콜": "🟤",
+  "아사히 드라이 제로": "🔶",
+  "하이트 제로 (0.00)": "🟠",
+  "논알콜 칵테일": "🍹",
+  "기타": "➕",
+};
+
 function initBrandFilter() {
   const container = document.getElementById("brand-filter");
   if (!container) return;
   const chips = ["전체", ...BRANDS];
   container.innerHTML = chips
-    .map((b, i) => `<button type="button" class="filter-chip${i === 0 ? " active" : ""}" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`)
+    .map((b, i) => `
+      <button type="button" class="filter-chip${i === 0 ? " active" : ""}${i === 0 ? " chip-all" : ""}" data-brand="${escapeHtml(b)}">
+        <span class="chip-icon">${BRAND_ICONS[b] || "🍺"}</span>
+        <span class="chip-label">${escapeHtml(b)}</span>
+      </button>`)
     .join("");
 
   container.querySelectorAll(".filter-chip").forEach((chip) => {
@@ -549,6 +567,7 @@ function clearFilters() {
   document.querySelectorAll("#brand-filter .filter-chip").forEach((c) => {
     c.classList.toggle("active", c.dataset.brand === "전체");
   });
+
   applyFilters();
 }
 
