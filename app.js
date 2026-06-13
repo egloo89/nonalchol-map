@@ -14,12 +14,33 @@ let currentSearch = "";
 let currentUser = null; // { uid, nickname }
 
 const BRANDS = [
-  "하이네켄 제로 (0.0)", "카스 0.0", "클라우드 클리어 제로", "버드와이저 제로",
-  "에딩거 알코홀프라이", "칭따오 논알콜", "아사히 드라이 제로",
-  "하이트 제로 (0.00)", "논알콜 칵테일", "기타",
+  "논알콜 맥주 (종류 무관)",
+  "논알콜 칵테일 (종류 무관)",
+  "하이트 제로 (0.00)",
+  "카스 제로 (0.0)",
+  "하이네켄 제로 (0.0)",
+  "클라우드 클리어 제로",
+  "버드와이저 제로",
+  "에딩거 알코홀프라이",
+  "칭따오 논알콜",
+  "아사히 드라이 제로",
+  "기타",
 ];
 
-// ─── Firebase 초기화 ───────────────────────────────
+const BRAND_ICONS = {
+  "전체": "🍺",
+  "논알콜 맥주 (종류 무관)": "🍻",
+  "논알콜 칵테일 (종류 무관)": "🍹",
+  "하이트 제로 (0.00)": "🟠",
+  "카스 제로 (0.0)": "🔵",
+  "하이네켄 제로 (0.0)": "🟢",
+  "클라우드 클리어 제로": "🟡",
+  "버드와이저 제로": "🔴",
+  "에딩거 알코홀프라이": "⚪",
+  "칭따오 논알콜": "🟤",
+  "아사히 드라이 제로": "🔶",
+  "기타": "➕",
+};
 
 function initFirebase() {
   if (!window.firebase) {
@@ -479,19 +500,6 @@ function updateCount(n) {
 
 // ─── 브랜드 필터 ───────────────────────────────────
 
-const BRAND_ICONS = {
-  "전체": "🍺",
-  "하이네켄 제로 (0.0)": "🟢",
-  "카스 0.0": "🔵",
-  "클라우드 클리어 제로": "🟡",
-  "버드와이저 제로": "🔴",
-  "에딩거 알코홀프라이": "⚪",
-  "칭따오 논알콜": "🟤",
-  "아사히 드라이 제로": "🔶",
-  "하이트 제로 (0.00)": "🟠",
-  "논알콜 칵테일": "🍹",
-  "기타": "➕",
-};
 
 function initBrandFilter() {
   const container = document.getElementById("brand-filter");
@@ -732,11 +740,10 @@ function initReportModal() {
   if (!overlay) return;
 
   // 브랜드 체크박스 동적 생성
-  const icons = ["🟢","🔵","🟡","🔴","⚪","🟤","🔶","🟠","🍹","➕"];
   document.getElementById("report-brands").innerHTML = BRANDS
-    .map((b, i) => `
+    .map((b) => `
       <label class="brand-checkbox" data-value="${escapeHtml(b)}">
-        <input type="checkbox" /><span class="cb-icon">${icons[i] || "🍺"}</span> ${escapeHtml(b)}
+        <input type="checkbox" /><span class="cb-icon">${BRAND_ICONS[b] || "🍺"}</span> ${escapeHtml(b)}
       </label>
     `)
     .join("");
