@@ -286,6 +286,28 @@ body {
   border-bottom: none;
 }
 
+/* ─── 알콜 함량 안내 ─── */
+#abv-guide {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+  font-size: 11px;
+  color: #92400e;
+  flex-shrink: 0;
+}
+
+#abv-guide .abv-item b {
+  font-weight: 700;
+  color: #b45309;
+}
+
+#abv-guide .abv-divider {
+  color: #d97706;
+}
+
 #brand-filter {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
