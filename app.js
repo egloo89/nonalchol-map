@@ -16,9 +16,9 @@ let currentUser = null; // { uid, nickname }
 const BRANDS = [
   "논알콜 맥주 (종류 무관)",
   "논알콜 칵테일 (종류 무관)",
+  "카스 제로 (0.0)",
   "하이네켄 제로 (0.0)",
   "하이트 제로 (0.00)",
-  "카스 제로 (0.0)",
   "클라우드 클리어 제로",
   "버드와이저 제로",
   "칼스버그 0.0",
@@ -513,7 +513,7 @@ function updateCount(n) {
 // ─── 브랜드 필터 ───────────────────────────────────
 
 
-const FILTER_PREVIEW = 4; // 전체 + 논알콜 맥주, 논알콜 칵테일, 하이네켄 제로
+const FILTER_PREVIEW = 5; // 전체 + 논알콜 맥주, 논알콜 칵테일, 카스 제로, 하이네켄 제로
 
 function initBrandFilter() {
   const container = document.getElementById("brand-filter");
