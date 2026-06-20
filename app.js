@@ -894,7 +894,7 @@ function initReportModal() {
     commentEl.addEventListener("input", () => {
       const len = commentEl.value.length;
       counterEl.textContent = `${len}/500`;
-      counterEl.className = "char-counter" + (len >= 500 ? " at-limit" : len >= 400 ? " near-limit" : "");
+      counterEl.className = "char-counter" + (len >= 300 ? " at-limit" : len >= 250 ? " near-limit" : "");
     });
   }
 
@@ -1001,7 +1001,7 @@ function openReportModal() {
   document.getElementById("report-search-input").value = "";
   reportGeocoderResult = null;
   const ctr = document.getElementById("comment-counter");
-  if (ctr) { ctr.textContent = "0/500"; ctr.className = "char-counter"; }
+  if (ctr) { ctr.textContent = "0/300"; ctr.className = "char-counter"; }
   document.getElementById("report-place-results").style.display = "none";
   document.getElementById("report-selected-card").style.display = "none";
   document.getElementById("report-name").value = "";
