@@ -240,25 +240,33 @@
           제보해 주시면 관리자 확인 후 지도에 <b>NON</b> 마커로 표시됩니다.
         </p>
 
+        <!-- ① 검색 입력 -->
         <div class="form-group">
-          <label for="report-name">가게 이름 <span class="required">*</span></label>
-          <input id="report-name" type="text" placeholder="예: 어반플레이스 홍대점" required maxlength="60" />
-        </div>
-
-        <div class="form-group">
-          <label for="report-address">
-            가게 주소 <span class="required">*</span>
-            <span class="hint">도로명 또는 지번 주소</span>
+          <label for="report-search-input">
+            가게 검색 <span class="required">*</span>
+            <span class="hint">주소 · 가게명 · 네이버맵 링크</span>
           </label>
           <div class="address-row">
-            <input id="report-address" type="text" placeholder="예: 서울 마포구 홍익로 5길 20" required maxlength="150" />
-            <button type="button" id="btn-report-address">주소 확인</button>
+            <input id="report-search-input" type="text"
+              placeholder="예: 서울 마포구 와우산로 29  또는  네이버맵 공유 링크" maxlength="300" />
+            <button type="button" id="btn-report-address">검색</button>
           </div>
-          <div class="coords-display" id="report-coords-display">
-            주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.
-          </div>
+          <!-- 검색 결과 목록 -->
           <div id="report-place-results" class="place-results-list" style="display:none"></div>
         </div>
+
+        <!-- ② 선택된 가게 (선택 후 표시) -->
+        <div id="report-selected-card" class="selected-place-card" style="display:none">
+          <div class="spc-badge">✓ 선택된 가게</div>
+          <div class="spc-name" id="spc-name"></div>
+          <div class="spc-addr" id="spc-addr"></div>
+          <div class="spc-coords" id="spc-coords"></div>
+          <button type="button" id="btn-change-place" class="btn-change-place">가게 변경</button>
+        </div>
+
+        <!-- 폼 제출용 hidden 필드 -->
+        <input type="hidden" id="report-name" />
+        <input type="hidden" id="report-address" />
 
         <div class="form-group">
           <label>

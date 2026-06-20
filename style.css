@@ -834,6 +834,56 @@ body {
   margin-top: 8px;
 }
 
+/* ─── 선택된 가게 카드 ─── */
+.selected-place-card {
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #ecfdf5;
+  margin-top: 8px;
+  position: relative;
+}
+
+.spc-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.spc-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+
+.spc-addr {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.spc-coords {
+  font-size: 11px;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.btn-change-place {
+  background: white;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-change-place:hover { background: var(--accent); color: white; }
+
 /* ─── 가게 검색결과 리스트 ─── */
 .place-results-list {
   border: 1.5px solid var(--primary);

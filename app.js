@@ -800,58 +800,64 @@ function initReportModal() {
     if (e.target === e.currentTarget) closeReportModal();
   });
 
-  // 주소 확인: 카카오 키워드 검색으로 결과 목록 표시 → 클릭 선택
+  // 검색 버튼: 네이버맵 URL 파싱 → 카카오 키워드 검색 → 결과 목록
   document.getElementById("btn-report-address").addEventListener("click", () => {
-    const name = document.getElementById("report-name").value.trim();
-    const address = document.getElementById("report-address").value.trim();
-    const query = (name ? `${name} ${address}` : address).trim();
-    if (!query) { showToast("가게 이름 또는 주소를 먼저 입력해 주세요."); return; }
+    const raw = document.getElementById("report-search-input").value.trim();
+    if (!raw) { showToast("가게 이름, 주소, 또는 링크를 입력해 주세요."); return; }
 
     const btn = document.getElementById("btn-report-address");
     btn.textContent = "검색 중...";
     btn.disabled = true;
+    const resetBtn = () => { btn.textContent = "검색"; btn.disabled = false; };
 
-    const resetBtn = () => { btn.textContent = "주소 확인"; btn.disabled = false; };
-
-    if (window.kakao?.maps?.services) {
-      const ps = new kakao.maps.services.Places();
-      ps.keywordSearch(query, (data, status) => {
-        resetBtn();
-        if (status === kakao.maps.services.Status.OK && data.length > 0) {
-          showReportPlaceResults(data.slice(0, 5));
+    // 네이버맵 URL → 검색어 추출
+    let query = raw;
+    if (raw.startsWith("http")) {
+      try {
+        const url = new URL(raw);
+        if (url.hostname === "map.naver.com" || url.hostname === "m.map.naver.com") {
+          // /v5/search/가게명 형태
+          const seg = url.pathname.split("/");
+          const si = seg.indexOf("search");
+          if (si !== -1 && seg[si + 1]) {
+            query = decodeURIComponent(seg[si + 1]);
+          } else {
+            // 쿼리 파라미터 ?query=...
+            query = url.searchParams.get("query") || url.searchParams.get("q") || raw;
+          }
         } else {
-          // 키워드 검색 실패 → 주소 지오코딩 fallback
-          if (!address) { showToast("가게를 찾을 수 없습니다. 주소를 더 구체적으로 입력해 주세요.", "error"); return; }
-          const geocoder = new kakao.maps.services.Geocoder();
-          geocoder.addressSearch(address, (result, status2) => {
-            if (status2 === kakao.maps.services.Status.OK && result.length > 0) {
-              selectReportPlace({
-                place_name: name || address,
-                road_address_name: result[0].road_address?.address_name || address,
-                address_name: address,
-                x: result[0].x,
-                y: result[0].y,
-                phone: "",
-              });
-            } else {
-              showToast("주소를 찾을 수 없습니다. 더 구체적으로 입력해 주세요.", "error");
-            }
-          });
+          resetBtn();
+          showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
+          return;
         }
-      });
-    } else {
+      } catch {
+        // URL 파싱 실패 → 그냥 텍스트로 검색
+      }
+    }
+
+    if (!window.kakao?.maps?.services) {
       resetBtn();
       showToast("카카오맵 서비스를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.", "error");
+      return;
     }
+
+    const ps = new kakao.maps.services.Places();
+    ps.keywordSearch(query, (data, status) => {
+      resetBtn();
+      if (status === kakao.maps.services.Status.OK && data.length > 0) {
+        showReportPlaceResults(data.slice(0, 5));
+      } else {
+        showToast("검색 결과가 없습니다. 다른 키워드나 주소로 시도해 보세요.", "error");
+      }
+    });
   });
 
   function showReportPlaceResults(places) {
     const resultsEl = document.getElementById("report-place-results");
-    const coordsEl = document.getElementById("report-coords-display");
-    coordsEl.style.display = "none";
+    document.getElementById("report-selected-card").style.display = "none";
     resultsEl.style.display = "block";
     resultsEl.innerHTML = `
-      <div class="prl-title">아래 목록에서 가게를 선택해 주세요</div>
+      <div class="prl-title">가게를 선택해 주세요 (${places.length}개 검색됨)</div>
       ${places.map((p, i) => `
         <div class="prl-item" data-idx="${i}">
           <div class="prl-name">${escapeHtml(p.place_name)}</div>
@@ -871,22 +877,27 @@ function initReportModal() {
 
   function selectReportPlace(place) {
     reportGeocoderResult = { lat: parseFloat(place.y), lng: parseFloat(place.x) };
-    // 가게 이름/주소 자동 입력
-    if (place.place_name) document.getElementById("report-name").value = place.place_name;
-    if (place.road_address_name || place.address_name) {
-      document.getElementById("report-address").value = place.road_address_name || place.address_name;
-    }
-    const coordsEl = document.getElementById("report-coords-display");
-    coordsEl.style.display = "";
-    coordsEl.innerHTML = `
-      <div style="font-weight:600;margin-bottom:2px">📍 ${escapeHtml(place.place_name || "")}</div>
-      <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(place.road_address_name || place.address_name || "")}</div>
-      ${place.phone ? `<div style="font-size:11px;color:var(--text-muted)">📞 ${escapeHtml(place.phone)}</div>` : ""}
-      <div style="font-size:11px;color:var(--accent);margin-top:4px">✓ 위도 ${reportGeocoderResult.lat.toFixed(5)}, 경도 ${reportGeocoderResult.lng.toFixed(5)}</div>
-    `;
-    coordsEl.style.borderColor = "#10b981";
-    showToast("가게를 선택했습니다!", "success");
+    const addr = place.road_address_name || place.address_name || "";
+    // hidden 필드에 저장
+    document.getElementById("report-name").value = place.place_name || "";
+    document.getElementById("report-address").value = addr;
+    // 선택 카드 표시
+    document.getElementById("spc-name").textContent = place.place_name || "";
+    document.getElementById("spc-addr").textContent = addr;
+    document.getElementById("spc-coords").textContent =
+      `위도 ${reportGeocoderResult.lat.toFixed(5)}, 경도 ${reportGeocoderResult.lng.toFixed(5)}`;
+    if (place.phone) document.getElementById("spc-coords").textContent += `  📞 ${place.phone}`;
+    document.getElementById("report-selected-card").style.display = "block";
+    showToast(`'${place.place_name}' 선택됐습니다!`, "success");
   }
+
+  document.getElementById("btn-change-place")?.addEventListener("click", () => {
+    document.getElementById("report-selected-card").style.display = "none";
+    document.getElementById("report-name").value = "";
+    document.getElementById("report-address").value = "";
+    reportGeocoderResult = null;
+    document.getElementById("report-search-input").focus();
+  });
 
   // 제보 제출
   document.getElementById("report-form").addEventListener("submit", async (e) => {
@@ -895,12 +906,8 @@ function initReportModal() {
     const name = document.getElementById("report-name").value.trim();
     const address = document.getElementById("report-address").value.trim();
 
-    if (!name || !address) {
-      showToast("가게 이름과 주소는 필수입니다.", "error");
-      return;
-    }
-    if (!reportGeocoderResult) {
-      showToast("주소 확인 버튼을 눌러 위치를 확인해 주세요.", "error");
+    if (!name || !address || !reportGeocoderResult) {
+      showToast("가게를 검색하고 목록에서 선택해 주세요.", "error");
       return;
     }
 
@@ -951,13 +958,14 @@ function initReportModal() {
 
 function openReportModal() {
   document.getElementById("report-form").reset();
+  document.getElementById("report-search-input").value = "";
   reportGeocoderResult = null;
-  const el = document.getElementById("report-coords-display");
-  el.innerHTML = "주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.";
-  el.style.borderColor = "";
+  document.getElementById("report-place-results").style.display = "none";
+  document.getElementById("report-selected-card").style.display = "none";
+  document.getElementById("report-name").value = "";
+  document.getElementById("report-address").value = "";
   document.querySelectorAll("#report-brands .brand-checkbox").forEach((c) => c.classList.remove("checked"));
   document.getElementById("report-other-input").style.display = "none";
-  document.getElementById("report-place-results").style.display = "none";
   document.getElementById("report-modal-overlay").classList.add("active");
 }
 
