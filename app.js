@@ -378,12 +378,20 @@ function renderMarkers(filtered) {
 
   const bounds = new kakao.maps.LatLngBounds();
   let validCount = 0;
+  let lastPos = null;
 
   list.forEach((place) => {
-    if (place.lat == null || place.lng == null || (place.lat === 0 && place.lng === 0)) return;
+    // 좌표가 문자열로 저장된 경우도 대비해 숫자로 변환
+    const lat = Number(place.lat);
+    const lng = Number(place.lng);
+    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) {
+      console.warn("[renderMarkers] 좌표 없음/이상 → 건너뜀:", place.name, place.lat, place.lng);
+      return;
+    }
 
-    const position = new kakao.maps.LatLng(place.lat, place.lng);
+    const position = new kakao.maps.LatLng(lat, lng);
     bounds.extend(position);
+    lastPos = position;
     validCount++;
 
     // NON 핀 마커 (CustomOverlay)
@@ -431,14 +439,20 @@ function renderMarkers(filtered) {
     infoOverlays.push(infoOverlay);
   });
 
+  console.log(`[renderMarkers] 표시된 마커 ${validCount}개 / 전체 ${list.length}개`);
+
   // 첫 로드 시 모든 마커가 보이도록 지도 범위 자동 조정
   if (validCount > 0 && !hasFitBounds) {
-    if (validCount === 1) {
-      map.setCenter(bounds.getSouthWest());
-      map.setLevel(4);
-    } else {
-      map.setBounds(bounds);
-    }
+    // 카카오맵 컨테이너 크기 계산 타이밍 보정 후 범위 적용
+    setTimeout(() => {
+      map.relayout();
+      if (validCount === 1 && lastPos) {
+        map.setCenter(lastPos);
+        map.setLevel(4);
+      } else {
+        map.setBounds(bounds);
+      }
+    }, 200);
     hasFitBounds = true;
   }
 }
