@@ -893,7 +893,7 @@ function initReportModal() {
   if (commentEl && counterEl) {
     commentEl.addEventListener("input", () => {
       const len = commentEl.value.length;
-      counterEl.textContent = `${len}/500`;
+      counterEl.textContent = `${len}/300`;
       counterEl.className = "char-counter" + (len >= 300 ? " at-limit" : len >= 250 ? " near-limit" : "");
     });
   }
