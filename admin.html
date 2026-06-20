@@ -286,9 +286,15 @@
     `).join("");
   }
 
-  function del(id) {
+  async function del(id) {
     if (!confirm("이 가게를 삭제하시겠습니까?")) return;
-    db.collection("places").doc(id).delete();
+    try {
+      await db.collection("places").doc(id).delete();
+      alert("삭제 완료됐습니다.");
+    } catch (e) {
+      console.error("삭제 오류:", e);
+      alert("삭제 실패: " + e.message + "\n\nFirebase 콘솔 > Firestore > 규칙에서 places 쓰기 권한을 확인해 주세요.");
+    }
   }
 
   // ── 제보 관리 ──

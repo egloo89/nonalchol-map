@@ -2,17 +2,15 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 가게 목록: 누구나 읽기 가능, 쓰기는 인증된 사용자만
+    // 가게 목록: 누구나 읽기/쓰기 가능
+    // (관리자 페이지가 Firebase Auth 미사용 - 별도 비밀번호 보호)
     match /places/{docId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // 제보: 누구나 쓰기 가능 (로그인 없이도 제보), 읽기는 인증된 사용자만
+    // 제보: 누구나 생성 가능, 읽기·수정·삭제도 허용 (관리자 운영)
     match /reports/{docId} {
-      allow read: if request.auth != null;
-      allow create: if true;
-      allow update, delete: if request.auth != null;
+      allow read, write: if true;
     }
 
     // 유저 정보: 본인만 읽기/쓰기
