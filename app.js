@@ -12,6 +12,7 @@ let currentPoiPlace = null;
 let currentFilter = "전체";
 let currentSearch = "";
 let currentUser = null; // { uid, nickname }
+let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
 
 const BRANDS = [
   "논알콜 맥주 (종류 무관)",
@@ -375,10 +376,15 @@ function renderMarkers(filtered) {
   clearMarkers();
   const list = filtered ?? places;
 
+  const bounds = new kakao.maps.LatLngBounds();
+  let validCount = 0;
+
   list.forEach((place) => {
     if (place.lat == null || place.lng == null || (place.lat === 0 && place.lng === 0)) return;
 
     const position = new kakao.maps.LatLng(place.lat, place.lng);
+    bounds.extend(position);
+    validCount++;
 
     // NON 핀 마커 (CustomOverlay)
     const markerEl = document.createElement("div");
@@ -424,6 +430,17 @@ function renderMarkers(filtered) {
     markers.push(marker);
     infoOverlays.push(infoOverlay);
   });
+
+  // 첫 로드 시 모든 마커가 보이도록 지도 범위 자동 조정
+  if (validCount > 0 && !hasFitBounds) {
+    if (validCount === 1) {
+      map.setCenter(bounds.getSouthWest());
+      map.setLevel(4);
+    } else {
+      map.setBounds(bounds);
+    }
+    hasFitBounds = true;
+  }
 }
 
 function buildInfoWindowContent(place) {
