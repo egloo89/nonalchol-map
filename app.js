@@ -338,6 +338,8 @@ function openModalWithPlaceData(place) {
 
 // ─── Firestore: 가게 불러오기 ──────────────────────
 
+let prevPlaceCount = -1;
+
 function loadPlaces() {
   db.collection("places")
     .onSnapshot((snapshot) => {
@@ -345,6 +347,17 @@ function loadPlaces() {
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       console.log("[loadPlaces] 가게 수:", places.length, places.map(p => `${p.name}(${p.lat},${p.lng})`));
+
+      // 지도가 열린 상태에서 새 가게가 승인/추가되면 그 위치로 이동하도록 범위 재조정
+      if (prevPlaceCount !== -1 && places.length > prevPlaceCount) {
+        hasFitBounds = false;
+        const newest = places[0]; // 가장 최근 추가된 가게
+        if (newest && Number(newest.lat) && Number(newest.lng)) {
+          showToast(`새 가게 '${newest.name}'가 지도에 추가됐어요!`, "success");
+        }
+      }
+      prevPlaceCount = places.length;
+
       updateCount(places.length);
       applyFilters();
     }, (err) => {
