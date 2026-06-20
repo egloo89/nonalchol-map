@@ -288,7 +288,7 @@
         <td class="td-address">${h(p.address)}</td>
         <td class="td-brands">${(p.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
         <td class="td-desc">${h(p.description||"")}</td>
-        <td><a href="https://map.naver.com/v5/search/${encodeURIComponent((p.name||'')+" "+(p.address||''))}" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;font-size:12px">네이버 맵</a></td>
+        <td><a href="https://map.naver.com/p/search/${encodeURIComponent(p.name||'')}" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;font-size:12px">네이버 맵</a></td>
         <td style="font-size:11px">${coordCell}</td>
         <td>${h(p.addedBy||"익명")}</td>
         <td style="white-space:nowrap">${fmtDate(p.createdAt)}</td>
@@ -347,8 +347,7 @@
 
   // 네이버맵 셀: 저장된 URL이 있으면 그 링크, 없으면 가게명+주소로 네이버맵 검색 링크 생성
   function naverMapCell(r) {
-    const q = encodeURIComponent((r.name || "") + " " + (r.address || ""));
-    const searchUrl = "https://map.naver.com/v5/search/" + q;
+    const searchUrl = "https://map.naver.com/p/search/" + encodeURIComponent(r.name || "");
     const href = r.naverUrl || searchUrl;
     return `<a href="${h(href)}" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600">네이버 맵</a>`;
   }

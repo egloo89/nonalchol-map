@@ -512,8 +512,7 @@ function buildInfoWindowContent(place) {
     .map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`)
     .join("");
 
-  const naverQuery = encodeURIComponent((place.name || "") + " " + (place.address || ""));
-  const naverUrl = "https://map.naver.com/v5/search/" + naverQuery;
+  const naverUrl = "https://map.naver.com/p/search/" + encodeURIComponent(place.name || "");
 
   return `
     <div class="info-window">
@@ -1010,7 +1009,7 @@ function initReportModal() {
     const naverLink = document.getElementById("spc-naver-link");
     if (naverLink) {
       const q = encodeURIComponent((place.place_name || "") + " " + addr);
-      naverLink.href = "https://map.naver.com/v5/search/" + q;
+      naverLink.href = "https://map.naver.com/p/search/" + encodeURIComponent(place.place_name || "");
     }
 
     document.getElementById("report-selected-card").style.display = "block";
