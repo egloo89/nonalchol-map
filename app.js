@@ -343,11 +343,12 @@ function loadPlaces() {
       places = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      console.log("[loadPlaces] 가게 수:", places.length, places.map(p => `${p.name}(${p.lat},${p.lng})`));
       updateCount(places.length);
       applyFilters();
     }, (err) => {
-      console.error("데이터 불러오기 실패:", err);
-      showToast("데이터를 불러오는 중 오류가 발생했습니다.", "error");
+      console.error("[loadPlaces] Firestore 오류 (보안 규칙 확인 필요):", err.code, err.message);
+      showToast("데이터를 불러오는 중 오류가 발생했습니다. (F12 콘솔 확인)", "error");
     });
 }
 
@@ -375,7 +376,7 @@ function renderMarkers(filtered) {
   const list = filtered ?? places;
 
   list.forEach((place) => {
-    if (!place.lat || !place.lng) return;
+    if (place.lat == null || place.lng == null || (place.lat === 0 && place.lng === 0)) return;
 
     const position = new kakao.maps.LatLng(place.lat, place.lng);
 
