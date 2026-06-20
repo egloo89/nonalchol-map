@@ -118,6 +118,24 @@ body {
 
 #btn-report-place:hover { background: #059669; }
 
+/* 모바일 전용 가게 제보 버튼 (검색창 위, 가로 전체) */
+.btn-report-mobile {
+  display: none;
+  width: 100%;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+}
+.btn-report-mobile:hover { background: #059669; }
+.btn-report-mobile:active { transform: scale(0.98); }
+
 /* ─── NON 마커 ─── */
 .non-marker {
   display: flex;
@@ -464,6 +482,7 @@ body {
 
 #place-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
@@ -1075,13 +1094,17 @@ body {
   font-size: 13px;
   font-weight: 500;
   z-index: 300;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s, visibility 0.3s;
   white-space: nowrap;
   pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 #toast.show {
   transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 #toast.success { background: var(--accent); }
@@ -1120,13 +1143,9 @@ body {
   #header .count-badge { display: none; }
   .btn-admin-link { display: none; }
   #btn-add-place { display: none; }
-
-  #btn-report-place {
-    padding: 9px 16px;
-    font-size: 18px;
-    font-weight: 700;
-    white-space: nowrap;
-  }
+  /* 헤더 제보 버튼 숨기고, 검색창 위 가로형 버튼 사용 */
+  #btn-report-place { display: none; }
+  .btn-report-mobile { display: block; }
 
   .btn-login { padding: 5px 10px; font-size: 12px; }
   .btn-logout { padding: 5px 8px; font-size: 12px; }
@@ -1140,19 +1159,17 @@ body {
     height: 100dvh;
   }
 
-  #map-container { height: 55vh; }
+  #map-container { height: 45vh; flex: none; }
 
   /* ── 사이드바 ── */
   #sidebar {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
+    position: static;
     width: 100%;
-    height: 45vh;
+    flex: 1;
+    min-height: 0;
     border-right: none;
     border-top: 1px solid var(--border);
-    border-radius: 16px 16px 0 0;
-    z-index: 50;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    box-shadow: none;
   }
 
   #sidebar-header { padding: 10px 12px; }
@@ -1209,7 +1226,7 @@ body {
 
   /* ── 토스트: 사이드바 위 ── */
   #toast {
-    bottom: calc(45vh + 12px);
+    bottom: 20px;
     font-size: 12px;
     padding: 10px 16px;
     max-width: calc(100vw - 32px);

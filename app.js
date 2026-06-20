@@ -883,6 +883,7 @@ function initReportModal() {
   });
 
   document.getElementById("btn-report-place").addEventListener("click", openReportModal);
+  document.getElementById("btn-report-place-mobile")?.addEventListener("click", openReportModal);
   document.getElementById("report-modal-close").addEventListener("click", closeReportModal);
   document.getElementById("btn-report-cancel").addEventListener("click", closeReportModal);
   // 배경 클릭으로는 닫히지 않음 (X 버튼만으로 닫기)
