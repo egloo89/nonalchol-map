@@ -307,7 +307,7 @@ function searchAndShowPoiInfo(latlng) {
     if (status === kakao.maps.services.Status.OK && data.length > 0) {
       showPoiInfoWindow(data[0], new kakao.maps.LatLng(data[0].y, data[0].x));
     }
-  }, { location: latlng, radius, sort: kakao.maps.services.SortBy.DISTANCE });
+  }, { location: latlng, radius, sort: kakao.maps.services.SortBy.DISTANCE, useMapBounds: false });
 }
 
 function showPoiInfoWindow(place, position) {
