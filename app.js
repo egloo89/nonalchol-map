@@ -90,6 +90,8 @@ function initAuth() {
   }
   // 카카오 로그인 리다이렉트 복귀 처리
   handleKakaoRedirect();
+  // 네이버 로그인 SDK 초기화 + 콜백 처리
+  initNaver();
 
   auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -208,19 +210,48 @@ async function handleKakaoRedirect() {
   }
 }
 
-// ─── 네이버 로그인 (Client ID 발급 후 활성화) ──────
+// ─── 네이버 로그인 (네이버 JS SDK, 클라이언트 전용) ──
+let naverLoginInstance = null;
+
+function initNaver() {
+  if (typeof NAVER_CLIENT_ID === "undefined" || !NAVER_CLIENT_ID) return;
+  if (!window.naver || !window.naver.LoginWithNaverId) return;
+
+  naverLoginInstance = new naver.LoginWithNaverId({
+    clientId: NAVER_CLIENT_ID,
+    callbackUrl: location.origin + location.pathname,
+    isPopup: false,
+    loginButton: { color: "green", type: 3, height: 48 },
+    callbackHandle: true,
+  });
+  naverLoginInstance.init();
+
+  // 콜백 복귀 처리 (URL 해시에 access_token 포함 시)
+  if (location.hash.indexOf("access_token") !== -1) {
+    naverLoginInstance.getLoginStatus((status) => {
+      if (!status) return;
+      const u = naverLoginInstance.user;
+      const email = u.getEmail() || "";
+      const nickname = u.getNickName() || u.getName() || "네이버사용자";
+      const photoURL = u.getProfileImage() || "";
+      const id = u.getId();
+      setExternalUser("naver", id, nickname, photoURL, email);
+      showToast(`${nickname}님 환영합니다!`, "success");
+      history.replaceState({}, "", location.pathname);
+    });
+  }
+}
+
 function naverLogin() {
   setAuthError("");
-  if (typeof NAVER_CLIENT_ID === "undefined" || !NAVER_CLIENT_ID) {
-    setAuthError("네이버 로그인은 준비 중입니다. (Client ID 등록 후 활성화)");
+  if (!naverLoginInstance) {
+    setAuthError("네이버 로그인 준비 중입니다. (Client ID 등록 필요)");
     return;
   }
-  const redirectUri = encodeURIComponent(location.origin + location.pathname);
-  const state = Math.random().toString(36).slice(2);
-  sessionStorage.setItem("naverState", state);
-  location.href =
-    `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${NAVER_CLIENT_ID}` +
-    `&redirect_uri=${redirectUri}&state=${state}`;
+  // SDK가 생성한 숨은 네이버 버튼을 대신 클릭
+  const btn = document.querySelector("#naverIdLogin a");
+  if (btn) btn.click();
+  else setAuthError("네이버 로그인을 시작할 수 없습니다.");
 }
 
 // ─── 외부 로그인(카카오/네이버) 사용자 상태 ────────
