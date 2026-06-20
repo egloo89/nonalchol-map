@@ -5,6 +5,7 @@
 let map = null;
 let markers = [];
 let infoOverlays = [];
+let infoOverlayMap = new Map(); // place.id → CustomOverlay
 let places = [];
 let currentInfoWindow = null;
 let geocoderResult = null;
@@ -416,6 +417,7 @@ function clearMarkers() {
   infoOverlays.forEach((o) => o.setMap(null));
   markers = [];
   infoOverlays = [];
+  infoOverlayMap.clear();
   currentInfoWindow = null;
 }
 
@@ -497,6 +499,7 @@ function renderMarkers(filtered) {
 
     markers.push(marker);
     infoOverlays.push(infoOverlay);
+    infoOverlayMap.set(place.id, infoOverlay);
   });
 
   console.log(`[renderMarkers] 표시된 마커 ${validCount}개 / 전체 ${list.length}개`);
@@ -587,16 +590,15 @@ window.focusPlace = function (id) {
   if (!place || !place.lat || !place.lng) return;
 
   highlightCard(id);
-  const position = new kakao.maps.LatLng(place.lat, place.lng);
+  const position = new kakao.maps.LatLng(Number(place.lat), Number(place.lng));
   map.panTo(position);
   map.setLevel(3);
 
-  // 해당 마커의 정보창 열기
-  const idx = (places.filter((p) => p.lat && p.lng)).findIndex((p) => p.id === id);
-  if (infoOverlays[idx]) {
+  const overlay = infoOverlayMap.get(id);
+  if (overlay) {
     closeInfoWindow();
-    infoOverlays[idx].setMap(map);
-    currentInfoWindow = infoOverlays[idx];
+    overlay.setMap(map);
+    currentInfoWindow = overlay;
   }
 };
 
