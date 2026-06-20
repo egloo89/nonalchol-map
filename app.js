@@ -96,9 +96,10 @@ function initAuth() {
       // 구글 로그인 사용자
       const doc = await db.collection("users").doc(user.uid).get();
       if (doc.exists && doc.data().nickname) {
-        currentUser = { uid: user.uid, nickname: doc.data().nickname, photoURL: user.photoURL || "" };
+        currentUser = { uid: user.uid, nickname: doc.data().nickname, photoURL: user.photoURL || "", email: user.email || "" };
         updateAuthUI(currentUser.nickname, currentUser.photoURL);
       } else {
+        currentUser = { uid: user.uid, email: user.email || "" };
         showNicknameModal(user);
       }
     } else {
@@ -195,10 +196,11 @@ async function handleKakaoRedirect() {
     const photoURL =
       profile.thumbnail_image_url || profile.profile_image_url ||
       me.properties?.thumbnail_image || me.properties?.profile_image || "";
+    const email = me.kakao_account?.email || "";
     if (window.Kakao?.Auth?.setAccessToken) {
       try { Kakao.Auth.setAccessToken(token.access_token); } catch {}
     }
-    setExternalUser("kakao", String(me.id), nickname, photoURL);
+    setExternalUser("kakao", String(me.id), nickname, photoURL, email);
     showToast(`${nickname}님 환영합니다!`, "success");
   } catch (e) {
     console.error("카카오 로그인 처리 오류", e);
@@ -222,11 +224,22 @@ function naverLogin() {
 }
 
 // ─── 외부 로그인(카카오/네이버) 사용자 상태 ────────
-function setExternalUser(provider, id, nickname, photoURL = "") {
-  currentUser = { uid: `${provider}:${id}`, nickname, provider, photoURL };
+function setExternalUser(provider, id, nickname, photoURL = "", email = "") {
+  currentUser = { uid: `${provider}:${id}`, nickname, provider, photoURL, email };
   localStorage.setItem(EXTERNAL_USER_KEY, JSON.stringify(currentUser));
   updateAuthUI(nickname, photoURL);
   closeAuthModal();
+}
+
+// 관리자 여부 + 관리자 링크 노출 제어
+function isAdminUser(u) {
+  return !!(u && u.email && typeof ADMIN_EMAILS !== "undefined" &&
+    ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(u.email.toLowerCase()));
+}
+
+function updateAdminLink() {
+  const link = document.getElementById("btn-admin-link");
+  if (link) link.style.display = isAdminUser(currentUser) ? "" : "none";
 }
 
 function loadExternalUser() {
@@ -295,6 +308,7 @@ function updateAuthUI(nickname, photoURL) {
     loggedOut.style.display = "flex";
     loggedIn.style.display = "none";
   }
+  updateAdminLink();
 }
 
 function showNicknameModal(user) {

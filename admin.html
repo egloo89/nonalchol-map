@@ -122,18 +122,13 @@
 </head>
 <body>
 
-<!-- ── 로그인 ── -->
+<!-- ── 접근 안내 ── -->
 <div id="login-wrap">
   <div class="login-box">
-    <div class="logo">🍺</div>
-    <h2>관리자 로그인</h2>
-    <p>논알콜 술집 지도 관리자 페이지</p>
-    <form id="login-form">
-      <input type="text" id="input-id" placeholder="아이디" autocomplete="username" required />
-      <input type="password" id="input-pw" placeholder="비밀번호" autocomplete="current-password" required />
-      <div id="login-error"></div>
-      <button type="submit" class="btn-submit">로그인</button>
-    </form>
+    <div class="logo">🔒</div>
+    <h2 id="gate-title">권한 확인 중...</h2>
+    <p id="gate-msg">잠시만 기다려 주세요.</p>
+    <div id="login-error"></div>
     <a href="index.html" class="back-link">← 지도로 돌아가기</a>
   </div>
 </div>
@@ -199,6 +194,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="firebase-config.js"></script>
 <script>
   // 카카오맵 SDK (지오코딩용)
@@ -209,34 +205,66 @@
   })();
 </script>
 <script>
-  const ADMIN_ID = "gunhwi1028";
-  const ADMIN_PW = "gnl243381!!";
   let db;
+  let adminStarted = false;
 
-  // 세션 유지
-  if (localStorage.getItem("admin") === "1") showAdmin();
+  // Firebase 초기화
+  try { firebase.initializeApp(FIREBASE_CONFIG); } catch (e) {}
 
-  document.getElementById("login-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const id = document.getElementById("input-id").value.trim();
-    const pw = document.getElementById("input-pw").value;
-    if (id === ADMIN_ID && pw === ADMIN_PW) {
-      localStorage.setItem("admin", "1");
-      showAdmin();
-    } else {
-      document.getElementById("login-error").textContent = "아이디 또는 비밀번호가 틀렸습니다.";
-    }
-  });
+  const ADMIN_LIST = (typeof ADMIN_EMAILS !== "undefined" ? ADMIN_EMAILS : [])
+    .map((e) => e.toLowerCase());
+
+  function isAdminEmail(email) {
+    return !!(email && ADMIN_LIST.includes(email.toLowerCase()));
+  }
+
+  function loadExternalUser() {
+    try {
+      const raw = localStorage.getItem("nonUser");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  function denyAccess() {
+    document.getElementById("gate-title").textContent = "접근 권한이 없습니다";
+    document.getElementById("gate-msg").innerHTML =
+      "관리자 계정으로 <b>지도 페이지에서 먼저 로그인</b>한 뒤 다시 접속해 주세요.<br>(허용된 관리자 계정만 접근 가능합니다.)";
+  }
+
+  // 권한 확인: 카카오/네이버(localStorage) → 구글(Firebase Auth) 순으로 검사
+  (function checkAccess() {
+    const ext = loadExternalUser();
+    if (ext && isAdminEmail(ext.email)) { showAdmin(); return; }
+
+    // 구글 로그인 상태 확인 (비동기)
+    firebase.auth().onAuthStateChanged((user) => {
+      if (adminStarted) return;
+      if (user && isAdminEmail(user.email)) {
+        showAdmin();
+      } else {
+        // 외부 사용자도 아니고 구글 관리자도 아님
+        if (!(ext && isAdminEmail(ext.email))) denyAccess();
+      }
+    });
+
+    // Firebase 응답이 늦을 때를 대비해, 외부 사용자가 관리자 아니면 우선 안내
+    setTimeout(() => {
+      if (!adminStarted && !(ext && isAdminEmail(ext.email)) && !firebase.auth().currentUser) {
+        denyAccess();
+      }
+    }, 1500);
+  })();
 
   document.getElementById("btn-logout").addEventListener("click", () => {
-    localStorage.removeItem("admin");
-    location.reload();
+    if (firebase.auth().currentUser) firebase.auth().signOut();
+    location.href = "index.html";
   });
 
   function showAdmin() {
+    if (adminStarted) return;
+    adminStarted = true;
     document.getElementById("login-wrap").style.display = "none";
     document.getElementById("admin-wrap").style.display = "block";
-    try { firebase.initializeApp(FIREBASE_CONFIG); } catch(e) {}
     db = firebase.firestore();
     loadPlaces();
     loadReports();
