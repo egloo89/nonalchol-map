@@ -75,18 +75,21 @@
   <aside id="sidebar">
     <div id="sidebar-header">
       <button id="btn-report-place-mobile" class="btn-report-mobile">📢 가게 제보하기</button>
+      <button id="btn-toggle-search" class="btn-search-toggle">🔍 논알콜 판매 가게 검색</button>
+    </div>
+    <div id="search-section" class="search-section">
       <input
         id="search-input"
         type="search"
         placeholder="논알콜 맥주 판매 가게 검색, 맥주 브랜드 검색"
       />
+      <div id="abv-guide">
+        <span class="abv-item"><b>0.00%</b> 완전 무알콜</span>
+        <span class="abv-divider">·</span>
+        <span class="abv-item"><b>0.0%</b> 0.1~1% 미만</span>
+      </div>
+      <div id="brand-filter"></div>
     </div>
-    <div id="abv-guide">
-      <span class="abv-item"><b>0.00%</b> 완전 무알콜</span>
-      <span class="abv-divider">·</span>
-      <span class="abv-item"><b>0.0%</b> 0.1~1% 미만</span>
-    </div>
-    <div id="brand-filter"></div>
     <div id="filter-status"></div>
     <div id="place-list">
       <div id="empty-state">

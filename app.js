@@ -1150,5 +1150,18 @@ window.onload = function () {
   initFirebase();
   initBrandFilter(); // 지도 로드와 무관하게 필터는 항상 표시
   initReportModal();
+  initSearchToggle();
   // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };
+
+// ─── 모바일: 검색/필터 섹션 토글 ───────────────────
+function initSearchToggle() {
+  const btn = document.getElementById("btn-toggle-search");
+  const section = document.getElementById("search-section");
+  if (!btn || !section) return;
+  btn.addEventListener("click", () => {
+    const open = section.classList.toggle("open");
+    btn.classList.toggle("active", open);
+    btn.textContent = open ? "🔍 검색 닫기" : "🔍 논알콜 판매 가게 검색";
+  });
+}

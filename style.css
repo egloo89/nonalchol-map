@@ -136,6 +136,24 @@ body {
 .btn-report-mobile:hover { background: #059669; }
 .btn-report-mobile:active { transform: scale(0.98); }
 
+/* 검색/필터 토글 버튼 (모바일 전용) */
+.btn-search-toggle {
+  display: none;
+  width: 100%;
+  background: white;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: all 0.15s;
+}
+.btn-search-toggle.active { background: var(--primary); color: white; }
+.btn-search-toggle:active { transform: scale(0.98); }
+
 /* ─── NON 마커 ─── */
 .non-marker {
   display: flex;
@@ -302,7 +320,7 @@ body {
 }
 
 #sidebar-header {
-  padding: 14px 16px;
+  padding: 0;
   border-bottom: none;
 }
 
@@ -463,7 +481,8 @@ body {
 #btn-clear-filter:hover { background: rgba(37, 99, 235, 0.1); }
 
 #search-input {
-  width: 100%;
+  width: calc(100% - 32px);
+  margin: 14px 16px 12px;
   padding: 10px 13px;
   border: 1.5px solid var(--border);
   border-radius: 10px;
@@ -1200,17 +1219,28 @@ body {
     flex: unset;
   }
 
-  /* 검색창 + 제보버튼 고정 (스크롤해도 상단에 유지) */
+  /* 제보/검색 버튼 고정 (스크롤해도 상단에 유지) */
   #sidebar-header {
     position: sticky;
     top: 0;
     background: var(--card-bg);
     z-index: 20;
-    padding: 10px 12px;
+    padding: 10px 12px 0;
     border-bottom: 1px solid var(--border);
   }
 
-  #search-input { font-size: 13px; padding: 8px 11px; }
+  /* 검색 토글 버튼 표시, 마지막 버튼 여백 정리 */
+  .btn-search-toggle { display: block; margin-bottom: 10px; }
+
+  /* 검색/필터 섹션: 기본 숨김 → 버튼 누르면 표시 */
+  .search-section { display: none; }
+  .search-section.open { display: block; }
+  .search-section #search-input {
+    width: calc(100% - 24px);
+    margin: 0 12px 10px;
+    font-size: 13px;
+    padding: 8px 11px;
+  }
 
   /* ── 알콜 안내 ── */
   #abv-guide { font-size: 10px; padding: 5px 10px; }
