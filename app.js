@@ -56,12 +56,15 @@ const BRAND_ICONS = {
 };
 
 function initFirebase() {
+  if (window.db) return true; // 이미 초기화됨 (중복 호출 방지)
   if (!window.firebase) {
     showMapMessage("Firebase 라이브러리를 불러오지 못했습니다.", true);
     return false;
   }
   try {
-    firebase.initializeApp(FIREBASE_CONFIG);
+    if (!firebase.apps || firebase.apps.length === 0) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
     window.db = firebase.firestore();
     initAuth();
     return true;
@@ -252,6 +255,9 @@ function initMap() {
   });
 
   hideMapMessage();
+
+  // Firebase가 아직 준비 안 됐으면 먼저 초기화 (로드 순서 경쟁 방지)
+  if (!window.db) initFirebase();
   loadPlaces();
 }
 
