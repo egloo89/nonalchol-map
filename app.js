@@ -13,6 +13,7 @@ let currentFilter = "전체";
 let currentSearch = "";
 let currentUser = null; // { uid, nickname }
 let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
+let lastNonMarkerClick = 0; // NON 마커 클릭 시각 (맵 클릭 이벤트 중복 방지)
 
 const BRANDS = [
   "논알콜 맥주 (종류 무관)",
@@ -250,6 +251,8 @@ function initMap() {
   });
 
   kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+    // NON 마커 클릭 직후(300ms) 발생한 맵 클릭은 무시
+    if (Date.now() - lastNonMarkerClick < 300) return;
     if (currentInfoWindow) {
       closeInfoWindow();
       return;
@@ -470,6 +473,7 @@ function renderMarkers(filtered) {
     markerEl.addEventListener("click", (e) => {
       e.stopPropagation();
       kakao.maps.event.preventMap();
+      lastNonMarkerClick = Date.now();
       closeInfoWindow();
       infoOverlay.setMap(map);
       currentInfoWindow = infoOverlay;
