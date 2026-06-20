@@ -927,6 +927,41 @@ body {
 
 /* ─── Responsive ─── */
 @media (max-width: 640px) {
+  /* ── 헤더 ── */
+  #header {
+    padding: 0 10px;
+    gap: 6px;
+    height: 52px;
+  }
+
+  #header .logo { gap: 6px; }
+  #header .logo > div > div:first-child { font-size: 14px; }
+  #header .subtitle { display: none; }
+  #header .spacer { min-width: 0; }
+  #header .count-badge { display: none; }
+  .btn-admin-link { display: none; }
+  #btn-add-place { display: none; }
+
+  #btn-report-place {
+    padding: 6px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .btn-login { padding: 5px 10px; font-size: 12px; }
+  .btn-logout { padding: 5px 8px; font-size: 12px; }
+  #user-nickname { max-width: 56px; font-size: 11px; }
+
+  /* ── 앱 레이아웃 ── */
+  #app {
+    flex-direction: column;
+    padding-top: 52px;
+    height: 100vh;
+  }
+
+  #map-container { height: 55vh; }
+
+  /* ── 사이드바 ── */
   #sidebar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -939,14 +974,65 @@ body {
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
   }
 
-  #app { flex-direction: column; }
+  #sidebar-header { padding: 10px 12px; }
+  #search-input { font-size: 13px; padding: 8px 11px; }
 
-  #map-container {
-    height: 55vh;
-    padding-bottom: 0;
+  /* ── 알콜 안내 ── */
+  #abv-guide { font-size: 10px; padding: 5px 10px; }
+
+  /* ── 필터 ── */
+  #brand-filter { padding: 8px 10px; gap: 5px; }
+
+  .filter-chip {
+    font-size: 11px;
+    padding: 6px 7px;
+    gap: 4px;
+    border-radius: 7px;
   }
 
-  .brands-grid { grid-template-columns: 1fr 1fr; }
+  .filter-chip .chip-icon { font-size: 12px; flex-shrink: 0; }
+  #filter-toggle { font-size: 11px; padding: 6px; }
 
-  #header .subtitle { display: none; }
+  /* ── 가게 카드 ── */
+  .place-card { padding: 11px; }
+  .place-card .name { font-size: 14px; }
+
+  /* ── 모달: 바텀시트 스타일 ── */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    border-radius: 16px 16px 0 0;
+    max-height: 90vh;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .modal-header { padding: 16px 16px 0; }
+  .modal-header h2 { font-size: 16px; }
+  .modal-body { padding: 14px 16px; }
+  .modal-footer { padding: 0 16px 20px; }
+
+  .brands-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  .brand-checkbox { font-size: 12px; padding: 7px 8px; gap: 6px; }
+  .brand-checkbox .cb-icon { font-size: 14px; }
+
+  .address-row { gap: 6px; }
+
+  /* ── 정보창 ── */
+  .info-window { min-width: 190px; max-width: 240px; padding: 12px; }
+  .info-window .iw-name { font-size: 14px; }
+
+  /* ── 토스트: 사이드바 위 ── */
+  #toast {
+    bottom: calc(45vh + 12px);
+    font-size: 12px;
+    padding: 10px 16px;
+    max-width: calc(100vw - 32px);
+    white-space: normal;
+    text-align: center;
+  }
 }

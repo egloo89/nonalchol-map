@@ -177,6 +177,7 @@
             <th>주소</th>
             <th>논알콜 종류</th>
             <th>한마디</th>
+            <th>좌표</th>
             <th>제보자</th>
             <th>제보일</th>
             <th>관리</th>
@@ -191,6 +192,14 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="firebase-config.js"></script>
+<script>
+  // 카카오맵 SDK (지오코딩용)
+  (function() {
+    const s = document.createElement("script");
+    s.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + KAKAO_MAP_KEY + "&libraries=services&autoload=false";
+    document.head.appendChild(s);
+  })();
+</script>
 <script>
   const ADMIN_ID = "gunhwi1028";
   const ADMIN_PW = "gnl243381!!";
@@ -304,7 +313,7 @@
     table.style.display = "table";
 
     if (!reports.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="td-empty">대기 중인 제보가 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" class="td-empty">대기 중인 제보가 없습니다.</td></tr>`;
       return;
     }
 
@@ -315,6 +324,9 @@
         <td class="td-address">${h(r.address)}</td>
         <td class="td-brands">${(r.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
         <td class="td-desc">${h(r.comment||"")}</td>
+        <td style="font-size:11px;color:${r.lat&&r.lng?'#10b981':'#ef4444'}">
+          ${r.lat && r.lng ? `✓ ${r.lat.toFixed(4)},${r.lng.toFixed(4)}` : "❌ 좌표 없음"}
+        </td>
         <td>${h(r.reportedBy||"익명")}</td>
         <td style="white-space:nowrap">${r.createdAt ? new Date(r.createdAt.seconds*1000).toLocaleDateString("ko-KR") : "-"}</td>
         <td style="white-space:nowrap">
@@ -325,27 +337,52 @@
     `).join("");
   }
 
+  async function saveApproval(r, lat, lng) {
+    await db.collection("places").add({
+      name: r.name,
+      address: r.address,
+      lat: lat,
+      lng: lng,
+      brands: r.brands || [],
+      description: r.comment || "",
+      phone: r.phone || "",
+      hours: "",
+      addedBy: r.reportedBy || "익명",
+      source: "report",
+      reportId: r.id,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    await db.collection("reports").doc(r.id).update({ status: "approved" });
+    alert(`'${r.name}' 승인 완료! 지도에 NON 마커로 표시됩니다.`);
+  }
+
   async function approveReport(id) {
     const r = reportsCache.find((x) => x.id === id);
     if (!r) return;
     if (!confirm(`'${r.name}' 가게를 승인하여 지도에 표시하시겠습니까?`)) return;
 
     try {
-      await db.collection("places").add({
-        name: r.name,
-        address: r.address,
-        lat: r.lat,
-        lng: r.lng,
-        brands: r.brands || [],
-        description: r.comment || "",
-        phone: "",
-        hours: "",
-        addedBy: r.reportedBy || "익명",
-        source: "report",
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-      await db.collection("reports").doc(id).update({ status: "approved" });
-      alert(`'${r.name}' 승인 완료! 지도에 NON 마커로 표시됩니다.`);
+      if (r.lat && r.lng) {
+        await saveApproval(r, r.lat, r.lng);
+      } else {
+        // lat/lng 없으면 카카오 지오코딩으로 주소 → 좌표 변환
+        kakao.maps.load(async () => {
+          const geocoder = new kakao.maps.services.Geocoder();
+          geocoder.addressSearch(r.address, async (result, status) => {
+            try {
+              if (status === kakao.maps.services.Status.OK && result.length > 0) {
+                await saveApproval(r, parseFloat(result[0].y), parseFloat(result[0].x));
+              } else {
+                if (confirm("주소에서 좌표를 찾지 못했습니다. 좌표 없이 저장하면 지도에 마커가 표시되지 않습니다. 계속하시겠습니까?")) {
+                  await saveApproval(r, null, null);
+                }
+              }
+            } catch(e) {
+              alert("승인 중 오류: " + e.message);
+            }
+          });
+        });
+      }
     } catch (e) {
       console.error(e);
       alert("승인 중 오류가 발생했습니다: " + e.message);

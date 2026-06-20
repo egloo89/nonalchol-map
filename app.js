@@ -799,37 +799,63 @@ function initReportModal() {
     if (e.target === e.currentTarget) closeReportModal();
   });
 
-  // 주소 확인
+  // 주소 확인 (카카오 키워드 검색 → 주소 지오코딩 순으로 시도)
   document.getElementById("btn-report-address").addEventListener("click", () => {
+    const name = document.getElementById("report-name").value.trim();
     const address = document.getElementById("report-address").value.trim();
-    if (!address) {
-      showToast("주소를 먼저 입력해 주세요.");
-      return;
-    }
+    if (!address) { showToast("주소를 먼저 입력해 주세요."); return; }
+
     const btn = document.getElementById("btn-report-address");
+    const el = document.getElementById("report-coords-display");
     btn.textContent = "검색 중...";
     btn.disabled = true;
 
-    const geocoder = new kakao.maps.services.Geocoder();
-    geocoder.addressSearch(address, (result, status) => {
+    const done = (place) => {
       btn.textContent = "주소 확인";
       btn.disabled = false;
-      const el = document.getElementById("report-coords-display");
-      if (status === kakao.maps.services.Status.OK && result.length > 0) {
-        reportGeocoderResult = {
-          lat: parseFloat(result[0].y),
-          lng: parseFloat(result[0].x),
-        };
-        el.innerHTML = `위치 확인됨 → <span>위도 ${reportGeocoderResult.lat.toFixed(5)}, 경도 ${reportGeocoderResult.lng.toFixed(5)}</span>`;
-        el.style.borderColor = "#10b981";
-        showToast("주소 확인 완료!", "success");
-      } else {
-        reportGeocoderResult = null;
-        el.innerHTML = "주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.";
-        el.style.borderColor = "";
-        showToast("주소를 찾을 수 없습니다. 더 구체적으로 입력해 주세요.", "error");
+      reportGeocoderResult = { lat: parseFloat(place.y), lng: parseFloat(place.x) };
+      el.innerHTML = `
+        <div style="font-weight:600;color:var(--text);margin-bottom:2px">📍 ${escapeHtml(place.place_name || address)}</div>
+        <div style="font-size:11px;color:var(--text-muted)">${escapeHtml(place.road_address_name || place.address_name || address)}</div>
+        ${place.phone ? `<div style="font-size:11px;color:var(--text-muted)">📞 ${escapeHtml(place.phone)}</div>` : ""}
+        <div style="font-size:11px;color:var(--accent);margin-top:4px">위도 ${reportGeocoderResult.lat.toFixed(5)}, 경도 ${reportGeocoderResult.lng.toFixed(5)}</div>
+      `;
+      el.style.borderColor = "#10b981";
+      // 카카오맵 가게 정보가 있으면 전화번호 자동 입력
+      if (place.phone && !document.getElementById("report-comment").value) {
+        // 전화번호는 comment에 넣지 않고 그냥 좌표 활용
       }
-    });
+      showToast("위치 확인 완료!", "success");
+    };
+
+    const fallbackGeocode = () => {
+      const geocoder = new kakao.maps.services.Geocoder();
+      geocoder.addressSearch(address, (result, status) => {
+        btn.textContent = "주소 확인";
+        btn.disabled = false;
+        if (status === kakao.maps.services.Status.OK && result.length > 0) {
+          done({ y: result[0].y, x: result[0].x, place_name: "", road_address_name: result[0].road_address?.address_name || address, address_name: address });
+        } else {
+          reportGeocoderResult = null;
+          el.innerHTML = "주소를 입력하고 <b>주소 확인</b> 버튼을 눌러주세요.";
+          el.style.borderColor = "";
+          showToast("주소를 찾을 수 없습니다. 더 구체적으로 입력해 주세요.", "error");
+        }
+      });
+    };
+
+    if (name && window.kakao?.maps?.services) {
+      const ps = new kakao.maps.services.Places();
+      ps.keywordSearch(`${name} ${address}`, (data, status) => {
+        if (status === kakao.maps.services.Status.OK && data.length > 0) {
+          done(data[0]);
+        } else {
+          fallbackGeocode();
+        }
+      });
+    } else {
+      fallbackGeocode();
+    }
   });
 
   // 제보 제출
