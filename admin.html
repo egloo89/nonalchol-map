@@ -280,7 +280,7 @@
         <td>${h(p.phone||"")}</td>
         <td>${h(p.hours||"")}</td>
         <td>${h(p.addedBy||"익명")}</td>
-        <td style="white-space:nowrap">${p.createdAt ? new Date(p.createdAt.seconds*1000).toLocaleDateString("ko-KR") : "-"}</td>
+        <td style="white-space:nowrap">${fmtDate(p.createdAt)}</td>
         <td><button class="btn-del" onclick="del('${p.id}')">삭제</button></td>
       </tr>
     `).join("");
@@ -311,12 +311,18 @@
 
   // 네이버맵 셀: 저장된 URL이 있으면 그 링크, 없으면 가게명+주소로 네이버맵 검색 링크 생성
   function naverMapCell(r) {
-    if (r.naverUrl) {
-      return `<a href="${h(r.naverUrl)}" target="_blank" rel="noopener" style="color:#10b981">저장된 링크</a>`;
-    }
     const q = encodeURIComponent((r.name || "") + " " + (r.address || ""));
-    const url = "https://map.naver.com/v5/search/" + q;
-    return `<a href="${url}" target="_blank" rel="noopener" style="color:#2563eb">네이버 검색</a>`;
+    const searchUrl = "https://map.naver.com/v5/search/" + q;
+    const href = r.naverUrl || searchUrl;
+    return `<a href="${h(href)}" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600">네이버 맵</a>`;
+  }
+
+  function fmtDate(ts) {
+    if (!ts) return "-";
+    const d = new Date(ts.seconds * 1000);
+    const date = d.toLocaleDateString("ko-KR");
+    const time = d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    return `${date} ${time}`;
   }
 
   function renderReports(reports) {
@@ -341,7 +347,7 @@
           ${r.lat && r.lng ? `✓ ${r.lat.toFixed(4)},${r.lng.toFixed(4)}` : "❌ 좌표 없음"}
         </td>
         <td>${h(r.reportedBy||"익명")}</td>
-        <td style="white-space:nowrap">${r.createdAt ? new Date(r.createdAt.seconds*1000).toLocaleDateString("ko-KR") : "-"}</td>
+        <td style="white-space:nowrap">${fmtDate(r.createdAt)}</td>
         <td style="white-space:nowrap">
           <button class="btn-approve" onclick="approveReport('${r.id}')">✓ 승인</button>
           <button class="btn-del" onclick="rejectReport('${r.id}')">거절</button>
