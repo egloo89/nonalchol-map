@@ -96,8 +96,8 @@ function initAuth() {
       // 구글 로그인 사용자
       const doc = await db.collection("users").doc(user.uid).get();
       if (doc.exists && doc.data().nickname) {
-        currentUser = { uid: user.uid, nickname: doc.data().nickname };
-        updateAuthUI(currentUser.nickname);
+        currentUser = { uid: user.uid, nickname: doc.data().nickname, photoURL: user.photoURL || "" };
+        updateAuthUI(currentUser.nickname, currentUser.photoURL);
       } else {
         showNicknameModal(user);
       }
@@ -106,7 +106,7 @@ function initAuth() {
       const ext = loadExternalUser();
       if (ext) {
         currentUser = ext;
-        updateAuthUI(ext.nickname);
+        updateAuthUI(ext.nickname, ext.photoURL);
       } else {
         currentUser = null;
         updateAuthUI(null);
@@ -190,12 +190,15 @@ async function handleKakaoRedirect() {
       headers: { Authorization: "Bearer " + token.access_token },
     });
     const me = await meRes.json();
-    const nickname =
-      me.kakao_account?.profile?.nickname || me.properties?.nickname || "카카오사용자";
+    const profile = me.kakao_account?.profile || {};
+    const nickname = profile.nickname || me.properties?.nickname || "카카오사용자";
+    const photoURL =
+      profile.thumbnail_image_url || profile.profile_image_url ||
+      me.properties?.thumbnail_image || me.properties?.profile_image || "";
     if (window.Kakao?.Auth?.setAccessToken) {
       try { Kakao.Auth.setAccessToken(token.access_token); } catch {}
     }
-    setExternalUser("kakao", String(me.id), nickname);
+    setExternalUser("kakao", String(me.id), nickname, photoURL);
     showToast(`${nickname}님 환영합니다!`, "success");
   } catch (e) {
     console.error("카카오 로그인 처리 오류", e);
@@ -219,10 +222,10 @@ function naverLogin() {
 }
 
 // ─── 외부 로그인(카카오/네이버) 사용자 상태 ────────
-function setExternalUser(provider, id, nickname) {
-  currentUser = { uid: `${provider}:${id}`, nickname, provider };
+function setExternalUser(provider, id, nickname, photoURL = "") {
+  currentUser = { uid: `${provider}:${id}`, nickname, provider, photoURL };
   localStorage.setItem(EXTERNAL_USER_KEY, JSON.stringify(currentUser));
-  updateAuthUI(nickname);
+  updateAuthUI(nickname, photoURL);
   closeAuthModal();
 }
 
@@ -269,14 +272,25 @@ function getAuthErrorMsg(code) {
   return map[code] || "오류가 발생했습니다. 다시 시도해 주세요.";
 }
 
-function updateAuthUI(nickname) {
+function updateAuthUI(nickname, photoURL) {
   const loggedOut = document.getElementById("auth-logged-out");
   const loggedIn = document.getElementById("auth-logged-in");
   const nicknameEl = document.getElementById("user-nickname");
+  const avatarEl = document.getElementById("user-avatar");
   if (nickname) {
     loggedOut.style.display = "none";
     loggedIn.style.display = "flex";
-    if (nicknameEl) nicknameEl.textContent = `👤 ${nickname}`;
+    if (nicknameEl) nicknameEl.textContent = nickname;
+    if (avatarEl) {
+      if (photoURL) {
+        avatarEl.onerror = () => { avatarEl.style.display = "none"; };
+        avatarEl.src = photoURL;
+        avatarEl.style.display = "block";
+      } else {
+        avatarEl.removeAttribute("src");
+        avatarEl.style.display = "none";
+      }
+    }
   } else {
     loggedOut.style.display = "flex";
     loggedIn.style.display = "none";

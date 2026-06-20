@@ -210,6 +210,16 @@ body {
 #auth-logged-out { display: flex; align-items: center; }
 #auth-logged-in  { display: none; align-items: center; gap: 8px; }
 
+#user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border);
+  display: none;
+  flex-shrink: 0;
+}
+
 .btn-login {
   background: white;
   color: var(--primary);
