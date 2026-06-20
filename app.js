@@ -10,7 +10,7 @@ let places = [];
 let currentInfoWindow = null;
 let geocoderResult = null;
 let currentPoiPlace = null;
-let currentFilter = "전체";
+let selectedBrands = new Set(); // 비어있으면 "전체"
 let currentSearch = "";
 let currentUser = null; // { uid, nickname }
 let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
@@ -546,7 +546,7 @@ function renderSidebar(list) {
   const container = document.getElementById("place-list");
 
   if (list.length === 0) {
-    const isFiltering = currentFilter !== "전체" || currentSearch;
+    const isFiltering = selectedBrands.size > 0 || currentSearch;
     container.innerHTML = isFiltering
       ? `
       <div id="empty-state">
@@ -616,8 +616,9 @@ function initBrandFilter() {
   const container = document.getElementById("brand-filter");
   if (!container) return;
   const chips = ["전체", ...BRANDS];
-  let expanded = false;
   const hiddenCount = chips.length - FILTER_PREVIEW;
+  // PC는 기본 펼침, 모바일은 기본 접힘
+  let expanded = window.matchMedia("(min-width: 641px)").matches;
 
   container.innerHTML =
     chips.map((b, i) => `
@@ -628,34 +629,53 @@ function initBrandFilter() {
         <span class="chip-label">${escapeHtml(b)}</span>
       </button>`).join("") +
     `<button type="button" id="filter-toggle" class="filter-toggle">
-       <span id="filter-toggle-text">+ ${hiddenCount}개 더 보기</span>
+       <span id="filter-toggle-text">${expanded ? "▲ 접기" : `+ ${hiddenCount}개 더 보기`}</span>
      </button>`;
+
+  function syncChipStates() {
+    container.querySelectorAll(".filter-chip").forEach((c) => {
+      if (c.dataset.brand === "전체") {
+        c.classList.toggle("active", selectedBrands.size === 0);
+      } else {
+        c.classList.toggle("active", selectedBrands.has(c.dataset.brand));
+      }
+    });
+  }
 
   container.querySelectorAll(".filter-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      container.querySelectorAll(".filter-chip").forEach((c) => c.classList.remove("active"));
-      chip.classList.add("active");
-      currentFilter = chip.dataset.brand;
+      const brand = chip.dataset.brand;
+      if (brand === "전체") {
+        selectedBrands.clear(); // 전체 = 모든 필터 해제
+      } else if (selectedBrands.has(brand)) {
+        selectedBrands.delete(brand); // 중복선택 토글 해제
+      } else {
+        selectedBrands.add(brand); // 중복선택 추가
+      }
+      syncChipStates();
       applyFilters();
     });
   });
 
-  document.getElementById("filter-toggle").addEventListener("click", () => {
-    expanded = !expanded;
+  const applyExpanded = () => {
     container.querySelectorAll(".chip-collapsed").forEach((c) => {
       c.style.display = expanded ? "" : "none";
     });
     document.getElementById("filter-toggle-text").textContent =
       expanded ? "▲ 접기" : `+ ${hiddenCount}개 더 보기`;
+  };
+
+  document.getElementById("filter-toggle").addEventListener("click", () => {
+    expanded = !expanded;
+    applyExpanded();
   });
 
-  // 초기 숨김
-  container.querySelectorAll(".chip-collapsed").forEach((c) => { c.style.display = "none"; });
+  applyExpanded(); // 초기 상태 적용 (PC 펼침 / 모바일 접힘)
 }
 
 function getFilteredPlaces() {
   return places.filter((p) => {
-    const matchesBrand = currentFilter === "전체" || (p.brands || []).includes(currentFilter);
+    const matchesBrand = selectedBrands.size === 0 || (p.brands || []).some((b) => selectedBrands.has(b));
     const q = currentSearch;
     const matchesSearch =
       !q ||
@@ -678,7 +698,7 @@ function updateFilterStatus(shownCount) {
   const el = document.getElementById("filter-status");
   if (!el) return;
 
-  const hasFilter = currentFilter !== "전체" || currentSearch;
+  const hasFilter = selectedBrands.size > 0 || currentSearch;
   if (!hasFilter) {
     el.style.display = "none";
     updateCount(places.length);
@@ -686,7 +706,7 @@ function updateFilterStatus(shownCount) {
   }
 
   const parts = [];
-  if (currentFilter !== "전체") parts.push(`<span class="fs-tag">🏷️ ${escapeHtml(currentFilter)}</span>`);
+  selectedBrands.forEach((b) => parts.push(`<span class="fs-tag">🏷️ ${escapeHtml(b)}</span>`));
   if (currentSearch) parts.push(`<span class="fs-tag">🔍 "${escapeHtml(currentSearch)}"</span>`);
 
   el.innerHTML = `
@@ -699,7 +719,7 @@ function updateFilterStatus(shownCount) {
 }
 
 function clearFilters() {
-  currentFilter = "전체";
+  selectedBrands.clear();
   currentSearch = "";
   document.getElementById("search-input").value = "";
   document.querySelectorAll("#brand-filter .filter-chip").forEach((c) => {

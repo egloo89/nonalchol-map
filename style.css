@@ -384,9 +384,10 @@ body {
 }
 
 .filter-chip .chip-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  line-height: 1.25;
 }
 
 .filter-chip:hover {
