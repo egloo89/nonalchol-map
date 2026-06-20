@@ -801,7 +801,36 @@ function initReportModal() {
     if (e.target === e.currentTarget) closeReportModal();
   });
 
-  // 네이버맵 URL에서 가게명 추출 (allorigins /get JSON 엔드포인트 사용)
+  // 여러 CORS 프록시를 순서대로 시도 (HTML 또는 최종 URL 반환)
+  async function fetchViaProxy(targetUrl) {
+    // 1) allorigins /get (JSON, 리다이렉트 따름, 최종 URL도 제공)
+    try {
+      const res = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(targetUrl));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.contents) return { html: data.contents, finalUrl: data.status?.url || "" };
+      }
+    } catch { }
+    // 2) corsproxy.io
+    try {
+      const res = await fetch("https://corsproxy.io/?url=" + encodeURIComponent(targetUrl));
+      if (res.ok) {
+        const html = await res.text();
+        if (html) return { html, finalUrl: res.url || "" };
+      }
+    } catch { }
+    // 3) allorigins /raw
+    try {
+      const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl));
+      if (res.ok) {
+        const html = await res.text();
+        if (html) return { html, finalUrl: "" };
+      }
+    } catch { }
+    return null;
+  }
+
+  // 네이버맵 URL에서 가게명 추출
   async function extractQueryFromNaverUrl(raw) {
     try {
       const url = new URL(raw);
@@ -821,22 +850,21 @@ function initReportModal() {
         if (q) return q;
       }
 
-      // naver.me 단축URL 또는 /entry/place/{id} → allorigins /get (JSON, 서버사이드 리다이렉트 따름)
-      const proxyRes = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(raw));
-      const data = await proxyRes.json();
-      const html = data.contents || "";
+      // naver.me 단축URL 또는 /entry/place/{id} → 프록시로 HTML/최종URL 추출
+      const proxied = await fetchViaProxy(raw);
+      if (!proxied) return null;
 
-      // HTML에서 og:title 또는 <title> 추출
-      const name = extractNameFromNaverHtml(html);
+      const name = extractNameFromNaverHtml(proxied.html);
       if (name) return name;
 
       // 최종 리다이렉트 URL에 /search/ 포함 시 거기서 추출
-      const finalUrl = data.status?.url;
-      if (finalUrl) {
-        const fu = new URL(finalUrl);
-        const seg = fu.pathname.split("/");
-        const si = seg.indexOf("search");
-        if (si !== -1 && seg[si + 1]) return decodeURIComponent(seg[si + 1]);
+      if (proxied.finalUrl) {
+        try {
+          const fu = new URL(proxied.finalUrl);
+          const seg = fu.pathname.split("/");
+          const si = seg.indexOf("search");
+          if (si !== -1 && seg[si + 1]) return decodeURIComponent(seg[si + 1]);
+        } catch { }
       }
     } catch { }
     return null;
@@ -847,16 +875,29 @@ function initReportModal() {
     // og:title (속성 순서 무관)
     const og = html.match(/property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
       || html.match(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
-    if (og) return og[1].replace(/\s*[-|:：]\s*네이버\s*지도.*/i, "").trim();
+    if (og) return cleanNaverName(og[1]);
+
+    // JSON 내 placeName / name 필드 (네이버 place 페이지 초기 데이터)
+    const pj = html.match(/"placeName"\s*:\s*"([^"]+)"/) || html.match(/"name"\s*:\s*"([^"]+)"/);
+    if (pj) return cleanNaverName(pj[1]);
 
     const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (t) return t[1].replace(/\s*[-|:：]\s*네이버\s*지도.*/i, "").trim();
+    if (t) return cleanNaverName(t[1]);
 
     return null;
   }
 
-  // 검색 버튼: 네이버맵 URL 파싱 → 카카오 키워드 검색 → 결과 목록
-  document.getElementById("btn-report-address").addEventListener("click", async () => {
+  function cleanNaverName(s) {
+    return s.replace(/\s*[-|:：]\s*네이버\s*지도.*/i, "").replace(/\s*:\s*네이버.*/i, "").trim();
+  }
+
+
+  const REPORT_PAGE_SIZE = 5;
+  let reportResults = [];      // 정렬·필터된 전체 결과
+  let reportPage = 1;          // 현재 페이지 (1부터)
+
+  // 검색 실행 (버튼 클릭 / 엔터 공통)
+  async function runReportSearch() {
     const raw = document.getElementById("report-search-input").value.trim();
     if (!raw) { showToast("가게 이름, 주소, 또는 링크를 입력해 주세요."); return; }
 
@@ -885,9 +926,9 @@ function initReportModal() {
         query = extracted;
         reportNaverUrl = raw; // 원본 네이버 URL 저장
       } else {
-        // 추출 실패해도 링크 저장 후 원본 텍스트로 검색
-        reportNaverUrl = raw;
-        showToast("링크에서 가게명을 찾지 못해 링크 텍스트로 검색합니다.", "error");
+        resetBtn();
+        showToast("네이버 링크에서 가게명을 가져오지 못했습니다. 가게명을 직접 입력해 주세요.", "error");
+        return;
       }
     }
 
@@ -898,38 +939,95 @@ function initReportModal() {
     }
 
     const ps = new kakao.maps.services.Places();
+    // 음식점(FD6)·술집·카페(CE7) 위주, 한 번에 최대 15개
     ps.keywordSearch(query, (data, status) => {
       resetBtn();
-      if (status === kakao.maps.services.Status.OK && data.length > 0) {
-        showReportPlaceResults(data.slice(0, 5));
-      } else {
+      if (status !== kakao.maps.services.Status.OK || !data.length) {
         showToast("검색 결과가 없습니다. 다른 키워드나 주소로 시도해 보세요.", "error");
+        return;
       }
-    });
-  });
+      reportResults = filterAndSortResults(data);
+      if (!reportResults.length) {
+        showToast("음식점·술집 업종 검색 결과가 없습니다. 다른 키워드로 시도해 보세요.", "error");
+        return;
+      }
+      reportPage = 1;
+      renderReportResults();
+    }, { size: 15 });
+  }
 
-  function showReportPlaceResults(places) {
+  // 음식점·식당·술집 업종만, 서울·경기·인천 우선 정렬
+  function filterAndSortResults(data) {
+    const PRIORITY = ["서울", "경기", "인천"];
+    const isFood = (p) => {
+      const code = p.category_group_code;        // FD6=음식점, CE7=카페
+      const cat = p.category_name || "";
+      if (code === "FD6" || code === "CE7") return true;
+      return /음식점|식당|술집|주점|호프|포차|바|펍|카페|레스토랑/.test(cat);
+    };
+    const regionRank = (p) => {
+      const addr = p.road_address_name || p.address_name || "";
+      const idx = PRIORITY.findIndex((r) => addr.startsWith(r));
+      return idx === -1 ? PRIORITY.length : idx;
+    };
+    return data
+      .filter(isFood)
+      .map((p, i) => ({ p, i, rank: regionRank(p) }))
+      .sort((a, b) => a.rank - b.rank || a.i - b.i)  // 우선지역 먼저, 그 외 원래 순서
+      .map((x) => x.p);
+  }
+
+  function renderReportResults() {
     const resultsEl = document.getElementById("report-place-results");
     document.getElementById("report-selected-card").style.display = "none";
     resultsEl.style.display = "block";
+
+    const total = reportResults.length;
+    const totalPages = Math.ceil(total / REPORT_PAGE_SIZE);
+    const start = (reportPage - 1) * REPORT_PAGE_SIZE;
+    const pageItems = reportResults.slice(start, start + REPORT_PAGE_SIZE);
+
+    const pager = totalPages > 1
+      ? `<div class="prl-pager">${Array.from({ length: totalPages }, (_, i) =>
+          `<button type="button" class="prl-page ${i + 1 === reportPage ? "active" : ""}" data-page="${i + 1}">${i + 1}</button>`
+        ).join("")}</div>`
+      : "";
+
     resultsEl.innerHTML = `
-      <div class="prl-title">가게를 선택해 주세요 (${places.length}개 검색됨)</div>
-      ${places.map((p, i) => `
-        <div class="prl-item" data-idx="${i}">
+      <div class="prl-title">가게를 선택해 주세요 (총 ${total}개)</div>
+      ${pageItems.map((p, i) => `
+        <div class="prl-item" data-idx="${start + i}">
           <div class="prl-name">${escapeHtml(p.place_name)}</div>
           <div class="prl-addr">${escapeHtml(p.road_address_name || p.address_name)}</div>
           ${p.category_name ? `<div class="prl-cat">${escapeHtml(p.category_name.split(" > ").pop())}</div>` : ""}
           ${p.phone ? `<div class="prl-phone">📞 ${escapeHtml(p.phone)}</div>` : ""}
         </div>
       `).join("")}
+      ${pager}
     `;
-    resultsEl.querySelectorAll(".prl-item").forEach((item, i) => {
+    resultsEl.querySelectorAll(".prl-item").forEach((item) => {
       item.addEventListener("click", () => {
-        selectReportPlace(places[i]);
+        selectReportPlace(reportResults[Number(item.dataset.idx)]);
         resultsEl.style.display = "none";
       });
     });
+    resultsEl.querySelectorAll(".prl-page").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        reportPage = Number(btn.dataset.page);
+        renderReportResults();
+      });
+    });
   }
+
+  // 검색 버튼 클릭
+  document.getElementById("btn-report-address").addEventListener("click", runReportSearch);
+  // 입력칸에서 엔터로도 검색 (form submit 방지)
+  document.getElementById("report-search-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runReportSearch();
+    }
+  });
 
   function selectReportPlace(place) {
     reportGeocoderResult = { lat: parseFloat(place.y), lng: parseFloat(place.x) };

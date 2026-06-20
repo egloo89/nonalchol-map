@@ -918,6 +918,35 @@ body {
 .prl-cat  { font-size: 11px; color: var(--accent); margin-top: 2px; }
 .prl-phone { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
+.prl-pager {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-top: 1px solid var(--border);
+}
+
+.prl-page {
+  min-width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.prl-page:hover { background: #eff6ff; }
+.prl-page.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
 .coords-display {
   background: var(--bg);
   border: 1px solid var(--border);
