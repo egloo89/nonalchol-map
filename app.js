@@ -146,17 +146,25 @@ function kakaoRedirectUri() {
 
 function kakaoLogin() {
   setAuthError("");
-  if (!window.Kakao || !Kakao.isInitialized()) {
-    setAuthError("카카오 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  if (typeof KAKAO_REST_KEY === "undefined" || !KAKAO_REST_KEY) {
+    setAuthError("카카오 로그인 준비 중입니다. (REST API 키 등록 필요)");
     return;
   }
-  Kakao.Auth.authorize({ redirectUri: kakaoRedirectUri() });
+  // REST API 방식 authorize (토큰 발급과 동일한 client_id 사용)
+  const url =
+    "https://kauth.kakao.com/oauth/authorize?response_type=code" +
+    `&client_id=${KAKAO_REST_KEY}` +
+    `&redirect_uri=${encodeURIComponent(kakaoRedirectUri())}`;
+  location.href = url;
 }
 
 async function handleKakaoRedirect() {
   const params = new URLSearchParams(location.search);
   const code = params.get("code");
   if (!code) return;
+  // 네이버 로그인 코드와 구분 (state가 있으면 네이버)
+  if (params.get("state") && sessionStorage.getItem("naverState")) return;
+  if (typeof KAKAO_REST_KEY === "undefined" || !KAKAO_REST_KEY) return;
   // URL 정리 (코드 노출 방지 / 새로고침 시 재요청 방지)
   history.replaceState({}, "", location.pathname);
 
@@ -166,7 +174,7 @@ async function handleKakaoRedirect() {
       headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
       body: new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: KAKAO_MAP_KEY,
+        client_id: KAKAO_REST_KEY,
         redirect_uri: kakaoRedirectUri(),
         code,
       }),
@@ -177,10 +185,16 @@ async function handleKakaoRedirect() {
       showToast("카카오 로그인에 실패했습니다.", "error");
       return;
     }
-    Kakao.Auth.setAccessToken(token.access_token);
-    const me = await Kakao.API.request({ url: "/v2/user/me" });
+    // 사용자 정보 조회 (access token만 있으면 OK)
+    const meRes = await fetch("https://kapi.kakao.com/v2/user/me", {
+      headers: { Authorization: "Bearer " + token.access_token },
+    });
+    const me = await meRes.json();
     const nickname =
       me.kakao_account?.profile?.nickname || me.properties?.nickname || "카카오사용자";
+    if (window.Kakao?.Auth?.setAccessToken) {
+      try { Kakao.Auth.setAccessToken(token.access_token); } catch {}
+    }
     setExternalUser("kakao", String(me.id), nickname);
     showToast(`${nickname}님 환영합니다!`, "success");
   } catch (e) {
