@@ -887,6 +887,17 @@ function initReportModal() {
     });
   }
 
+  // 한마디 글자 수 카운터
+  const commentEl = document.getElementById("report-comment");
+  const counterEl = document.getElementById("comment-counter");
+  if (commentEl && counterEl) {
+    commentEl.addEventListener("input", () => {
+      const len = commentEl.value.length;
+      counterEl.textContent = `${len}/500`;
+      counterEl.className = "char-counter" + (len >= 500 ? " at-limit" : len >= 400 ? " near-limit" : "");
+    });
+  }
+
   // 검색 버튼 클릭
   document.getElementById("btn-report-address").addEventListener("click", runReportSearch);
   // 입력칸에서 엔터로도 검색 (form submit 방지)
@@ -989,6 +1000,8 @@ function openReportModal() {
   document.getElementById("report-form").reset();
   document.getElementById("report-search-input").value = "";
   reportGeocoderResult = null;
+  const ctr = document.getElementById("comment-counter");
+  if (ctr) { ctr.textContent = "0/500"; ctr.className = "char-counter"; }
   document.getElementById("report-place-results").style.display = "none";
   document.getElementById("report-selected-card").style.display = "none";
   document.getElementById("report-name").value = "";
