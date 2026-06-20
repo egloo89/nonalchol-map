@@ -337,12 +337,13 @@
     `).join("");
   }
 
-  async function saveApproval(r, lat, lng) {
-    await db.collection("places").add({
+  async function doSaveApproval(r, lat, lng) {
+    console.log("승인 저장 시작:", r.name, lat, lng);
+    const docRef = await db.collection("places").add({
       name: r.name,
       address: r.address,
-      lat: lat,
-      lng: lng,
+      lat: Number(lat),
+      lng: Number(lng),
       brands: r.brands || [],
       description: r.comment || "",
       phone: r.phone || "",
@@ -352,8 +353,12 @@
       reportId: r.id,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+    console.log("places 저장 완료, ID:", docRef.id);
     await db.collection("reports").doc(r.id).update({ status: "approved" });
-    alert(`'${r.name}' 승인 완료! 지도에 NON 마커로 표시됩니다.`);
+    console.log("reports 상태 업데이트 완료");
+    const mapUrl = "index.html";
+    const go = confirm(`✅ '${r.name}' 승인 완료!\n\n저장 ID: ${docRef.id}\n\n지도에서 확인하시겠습니까?`);
+    if (go) window.open(mapUrl, "_blank");
   }
 
   async function approveReport(id) {
@@ -363,29 +368,29 @@
 
     try {
       if (r.lat && r.lng) {
-        await saveApproval(r, r.lat, r.lng);
+        await doSaveApproval(r, r.lat, r.lng);
       } else {
         // lat/lng 없으면 카카오 지오코딩으로 주소 → 좌표 변환
         kakao.maps.load(async () => {
-          const geocoder = new kakao.maps.services.Geocoder();
-          geocoder.addressSearch(r.address, async (result, status) => {
-            try {
-              if (status === kakao.maps.services.Status.OK && result.length > 0) {
-                await saveApproval(r, parseFloat(result[0].y), parseFloat(result[0].x));
-              } else {
-                if (confirm("주소에서 좌표를 찾지 못했습니다. 좌표 없이 저장하면 지도에 마커가 표시되지 않습니다. 계속하시겠습니까?")) {
-                  await saveApproval(r, null, null);
+          try {
+            const geocoder = new kakao.maps.services.Geocoder();
+            geocoder.addressSearch(r.address, async (result, status) => {
+              try {
+                if (status === kakao.maps.services.Status.OK && result.length > 0) {
+                  await doSaveApproval(r, parseFloat(result[0].y), parseFloat(result[0].x));
+                } else {
+                  if (confirm("⚠️ 주소에서 좌표를 찾지 못했습니다.\n좌표 없이 저장하면 지도에 마커가 표시되지 않습니다.\n계속하시겠습니까?")) {
+                    await doSaveApproval(r, 0, 0);
+                  }
                 }
-              }
-            } catch(e) {
-              alert("승인 중 오류: " + e.message);
-            }
-          });
+              } catch(e) { alert("승인 중 오류: " + e.message); }
+            });
+          } catch(e) { alert("지오코더 오류: " + e.message); }
         });
       }
     } catch (e) {
-      console.error(e);
-      alert("승인 중 오류가 발생했습니다: " + e.message);
+      console.error("approveReport 오류:", e);
+      alert("승인 중 오류가 발생했습니다:\n" + e.message);
     }
   }
 

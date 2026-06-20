@@ -834,6 +834,40 @@ body {
   margin-top: 8px;
 }
 
+/* ─── 가게 검색결과 리스트 ─── */
+.place-results-list {
+  border: 1.5px solid var(--primary);
+  border-radius: 8px;
+  margin-top: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.1);
+}
+
+.prl-title {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: #eff6ff;
+  border-bottom: 1px solid #bfdbfe;
+}
+
+.prl-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+
+.prl-item:last-child { border-bottom: none; }
+.prl-item:hover { background: #eff6ff; }
+
+.prl-name { font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+.prl-addr { font-size: 11px; color: var(--text-muted); }
+.prl-cat  { font-size: 11px; color: var(--accent); margin-top: 2px; }
+.prl-phone { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
 .coords-display {
   background: var(--bg);
   border: 1px solid var(--border);
