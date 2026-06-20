@@ -591,8 +591,9 @@ window.focusPlace = function (id) {
 
   highlightCard(id);
   const position = new kakao.maps.LatLng(Number(place.lat), Number(place.lng));
-  map.panTo(position);
+  // 줌 먼저 맞춘 뒤 즉시 중심 이동 (panTo 애니메이션이 첫 클릭에서 끊기는 문제 방지)
   map.setLevel(3);
+  map.setCenter(position);
 
   const overlay = infoOverlayMap.get(id);
   if (overlay) {
