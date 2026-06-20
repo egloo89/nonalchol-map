@@ -258,39 +258,54 @@ body {
 .btn-admin-link:hover { background: var(--bg); }
 
 /* ─── Auth Modal ─── */
-.btn-google-login {
+.auth-intro {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.btn-social {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 11px;
+  padding: 13px;
   border: 1.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: white;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: filter 0.15s, background 0.15s, border-color 0.15s;
   color: var(--text);
+  margin-bottom: 10px;
 }
+.btn-social:active { transform: scale(0.99); }
+
+.btn-social .social-ic {
+  font-weight: 900;
+  font-size: 16px;
+  line-height: 1;
+}
+
 .btn-google-login:hover { background: var(--bg); border-color: #aaa; }
 
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 16px 0;
-  color: var(--text-muted);
-  font-size: 12px;
+.btn-kakao-login {
+  background: #fee500;
+  border-color: #fee500;
+  color: #191600;
 }
-.auth-divider::before,
-.auth-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--border);
+.btn-kakao-login:hover { filter: brightness(0.96); }
+
+.btn-naver-login {
+  background: #03c75a;
+  border-color: #03c75a;
+  color: #fff;
 }
+.btn-naver-login .social-ic { color: #fff; }
+.btn-naver-login:hover { filter: brightness(0.96); }
 
 #auth-error {
   color: var(--danger);

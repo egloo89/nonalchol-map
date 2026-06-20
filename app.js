@@ -79,13 +79,21 @@ function initFirebase() {
 
 // ─── 인증 ──────────────────────────────────────────
 
-let authMode = "login"; // "login" | "signup"
+const EXTERNAL_USER_KEY = "nonUser"; // localStorage: 카카오/네이버 등 클라이언트 로그인
 
 function initAuth() {
   const auth = firebase.auth();
 
+  // 카카오 SDK 초기화 (지도 SDK와 동일한 JS 키 사용)
+  if (window.Kakao && typeof KAKAO_MAP_KEY !== "undefined" && !Kakao.isInitialized()) {
+    try { Kakao.init(KAKAO_MAP_KEY); } catch (e) { console.warn("Kakao init 실패", e); }
+  }
+  // 카카오 로그인 리다이렉트 복귀 처리
+  handleKakaoRedirect();
+
   auth.onAuthStateChanged(async (user) => {
     if (user) {
+      // 구글 로그인 사용자
       const doc = await db.collection("users").doc(user.uid).get();
       if (doc.exists && doc.data().nickname) {
         currentUser = { uid: user.uid, nickname: doc.data().nickname };
@@ -94,13 +102,20 @@ function initAuth() {
         showNicknameModal(user);
       }
     } else {
-      currentUser = null;
-      updateAuthUI(null);
+      // 구글 미로그인 → 클라이언트(카카오/네이버) 로그인 복원
+      const ext = loadExternalUser();
+      if (ext) {
+        currentUser = ext;
+        updateAuthUI(ext.nickname);
+      } else {
+        currentUser = null;
+        updateAuthUI(null);
+      }
     }
   });
 
   document.getElementById("btn-login")?.addEventListener("click", openAuthModal);
-  document.getElementById("btn-logout")?.addEventListener("click", () => firebase.auth().signOut());
+  document.getElementById("btn-logout")?.addEventListener("click", logout);
   document.getElementById("auth-modal-close")?.addEventListener("click", closeAuthModal);
   document.getElementById("auth-modal-overlay")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeAuthModal();
@@ -117,63 +132,112 @@ function initAuth() {
     }
   });
 
-  // 이메일 로그인/회원가입
-  document.getElementById("btn-email-submit")?.addEventListener("click", handleEmailAuth);
-  document.getElementById("auth-email")?.addEventListener("keydown", (e) => { if (e.key === "Enter") handleEmailAuth(); });
-  document.getElementById("auth-password")?.addEventListener("keydown", (e) => { if (e.key === "Enter") handleEmailAuth(); });
-  document.getElementById("auth-confirm")?.addEventListener("keydown", (e) => { if (e.key === "Enter") handleEmailAuth(); });
+  // 카카오 로그인
+  document.getElementById("btn-kakao-login")?.addEventListener("click", kakaoLogin);
 
-  // 모드 토글
-  document.getElementById("btn-toggle-auth")?.addEventListener("click", () => {
-    authMode = authMode === "login" ? "signup" : "login";
-    updateAuthModalMode();
-  });
+  // 네이버 로그인
+  document.getElementById("btn-naver-login")?.addEventListener("click", naverLogin);
+}
+
+// ─── 카카오 로그인 (클라이언트 전용) ───────────────
+function kakaoRedirectUri() {
+  return location.origin + location.pathname;
+}
+
+function kakaoLogin() {
+  setAuthError("");
+  if (!window.Kakao || !Kakao.isInitialized()) {
+    setAuthError("카카오 SDK를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    return;
+  }
+  Kakao.Auth.authorize({ redirectUri: kakaoRedirectUri() });
+}
+
+async function handleKakaoRedirect() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get("code");
+  if (!code) return;
+  // URL 정리 (코드 노출 방지 / 새로고침 시 재요청 방지)
+  history.replaceState({}, "", location.pathname);
+
+  try {
+    const res = await fetch("https://kauth.kakao.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=utf-8" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: KAKAO_MAP_KEY,
+        redirect_uri: kakaoRedirectUri(),
+        code,
+      }),
+    });
+    const token = await res.json();
+    if (!token.access_token) {
+      console.error("카카오 토큰 발급 실패", token);
+      showToast("카카오 로그인에 실패했습니다.", "error");
+      return;
+    }
+    Kakao.Auth.setAccessToken(token.access_token);
+    const me = await Kakao.API.request({ url: "/v2/user/me" });
+    const nickname =
+      me.kakao_account?.profile?.nickname || me.properties?.nickname || "카카오사용자";
+    setExternalUser("kakao", String(me.id), nickname);
+    showToast(`${nickname}님 환영합니다!`, "success");
+  } catch (e) {
+    console.error("카카오 로그인 처리 오류", e);
+    showToast("카카오 로그인 중 오류가 발생했습니다.", "error");
+  }
+}
+
+// ─── 네이버 로그인 (Client ID 발급 후 활성화) ──────
+function naverLogin() {
+  setAuthError("");
+  if (typeof NAVER_CLIENT_ID === "undefined" || !NAVER_CLIENT_ID) {
+    setAuthError("네이버 로그인은 준비 중입니다. (Client ID 등록 후 활성화)");
+    return;
+  }
+  const redirectUri = encodeURIComponent(location.origin + location.pathname);
+  const state = Math.random().toString(36).slice(2);
+  sessionStorage.setItem("naverState", state);
+  location.href =
+    `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${NAVER_CLIENT_ID}` +
+    `&redirect_uri=${redirectUri}&state=${state}`;
+}
+
+// ─── 외부 로그인(카카오/네이버) 사용자 상태 ────────
+function setExternalUser(provider, id, nickname) {
+  currentUser = { uid: `${provider}:${id}`, nickname, provider };
+  localStorage.setItem(EXTERNAL_USER_KEY, JSON.stringify(currentUser));
+  updateAuthUI(nickname);
+  closeAuthModal();
+}
+
+function loadExternalUser() {
+  try {
+    const raw = localStorage.getItem(EXTERNAL_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function logout() {
+  const ext = loadExternalUser();
+  localStorage.removeItem(EXTERNAL_USER_KEY);
+  if (ext?.provider === "kakao" && window.Kakao?.Auth?.getAccessToken?.()) {
+    try { Kakao.Auth.logout(); } catch {}
+  }
+  currentUser = null;
+  updateAuthUI(null);
+  // 구글 로그인 상태도 해제
+  if (firebase.auth().currentUser) firebase.auth().signOut();
 }
 
 function openAuthModal() {
-  authMode = "login";
-  updateAuthModalMode();
   setAuthError("");
-  document.getElementById("auth-email").value = "";
-  document.getElementById("auth-password").value = "";
-  document.getElementById("auth-confirm").value = "";
   document.getElementById("auth-modal-overlay").classList.add("active");
 }
 
 function closeAuthModal() {
   document.getElementById("auth-modal-overlay").classList.remove("active");
-}
-
-function updateAuthModalMode() {
-  const isSignup = authMode === "signup";
-  document.getElementById("auth-modal-title").textContent = isSignup ? "회원가입" : "로그인";
-  document.getElementById("auth-confirm-group").style.display = isSignup ? "block" : "none";
-  document.getElementById("btn-email-submit").textContent = isSignup ? "회원가입" : "로그인";
-  document.getElementById("btn-toggle-auth").textContent = isSignup ? "이미 계정이 있어요 → 로그인" : "계정이 없으신가요? → 회원가입";
-  setAuthError("");
-}
-
-async function handleEmailAuth() {
-  const email = document.getElementById("auth-email").value.trim();
-  const password = document.getElementById("auth-password").value;
-  const confirm = document.getElementById("auth-confirm").value;
-  setAuthError("");
-
-  if (!email || !password) { setAuthError("이메일과 비밀번호를 입력해 주세요."); return; }
-
-  if (authMode === "signup") {
-    if (password.length < 6) { setAuthError("비밀번호는 6자 이상이어야 합니다."); return; }
-    if (password !== confirm) { setAuthError("비밀번호가 일치하지 않습니다."); return; }
-    try {
-      await firebase.auth().createUserWithEmailAndPassword(email, password);
-      closeAuthModal();
-    } catch (e) { setAuthError(getAuthErrorMsg(e.code)); }
-  } else {
-    try {
-      await firebase.auth().signInWithEmailAndPassword(email, password);
-      closeAuthModal();
-    } catch (e) { setAuthError(getAuthErrorMsg(e.code)); }
-  }
 }
 
 function setAuthError(msg) {
@@ -183,14 +247,10 @@ function setAuthError(msg) {
 
 function getAuthErrorMsg(code) {
   const map = {
-    "auth/email-already-in-use": "이미 사용 중인 이메일입니다.",
-    "auth/wrong-password": "비밀번호가 틀렸습니다.",
-    "auth/invalid-credential": "이메일 또는 비밀번호가 틀렸습니다.",
-    "auth/user-not-found": "등록된 계정이 없습니다.",
-    "auth/weak-password": "비밀번호는 6자 이상이어야 합니다.",
-    "auth/invalid-email": "올바른 이메일 형식이 아닙니다.",
-    "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
     "auth/popup-closed-by-user": "로그인이 취소되었습니다.",
+    "auth/cancelled-popup-request": "로그인이 취소되었습니다.",
+    "auth/popup-blocked": "팝업이 차단되었습니다. 팝업 허용 후 다시 시도해 주세요.",
+    "auth/too-many-requests": "잠시 후 다시 시도해 주세요.",
   };
   return map[code] || "오류가 발생했습니다. 다시 시도해 주세요.";
 }
