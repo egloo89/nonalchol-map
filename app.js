@@ -906,7 +906,8 @@ function initReportModal() {
     const resetBtn = () => { btn.textContent = "검색"; btn.disabled = false; };
 
     let query = raw;
-    reportNaverUrl = "";
+    // naver 힌트가 표시 중일 때는 reportNaverUrl 유지, 새 URL 입력 시에만 초기화
+    if (!raw.startsWith("http")) reportNaverUrl = reportNaverUrl; // 유지
 
     if (raw.startsWith("http")) {
       let isNaver = false;
@@ -955,34 +956,23 @@ function initReportModal() {
         showToast("검색 결과가 없습니다. 다른 키워드나 주소로 시도해 보세요.", "error");
         return;
       }
-      reportResults = filterAndSortResults(data);
-      if (!reportResults.length) {
-        showToast("음식점·술집 업종 검색 결과가 없습니다. 다른 키워드로 시도해 보세요.", "error");
-        return;
-      }
+      reportResults = sortByRegion(data);
       reportPage = 1;
       renderReportResults();
     }, { size: 15 });
   }
 
-  // 음식점·식당·술집 업종만, 서울·경기·인천 우선 정렬
-  function filterAndSortResults(data) {
+  // 서울·경기·인천 우선 정렬 (업종 필터 없음 - 가게명으로 검색 시 모두 표시)
+  function sortByRegion(data) {
     const PRIORITY = ["서울", "경기", "인천"];
-    const isFood = (p) => {
-      const code = p.category_group_code;        // FD6=음식점, CE7=카페
-      const cat = p.category_name || "";
-      if (code === "FD6" || code === "CE7") return true;
-      return /음식점|식당|술집|주점|호프|포차|바|펍|카페|레스토랑/.test(cat);
-    };
     const regionRank = (p) => {
       const addr = p.road_address_name || p.address_name || "";
       const idx = PRIORITY.findIndex((r) => addr.startsWith(r));
       return idx === -1 ? PRIORITY.length : idx;
     };
     return data
-      .filter(isFood)
       .map((p, i) => ({ p, i, rank: regionRank(p) }))
-      .sort((a, b) => a.rank - b.rank || a.i - b.i)  // 우선지역 먼저, 그 외 원래 순서
+      .sort((a, b) => a.rank - b.rank || a.i - b.i)
       .map((x) => x.p);
   }
 
