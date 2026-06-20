@@ -768,6 +768,7 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
 // ─── 가게 제보 ─────────────────────────────────────
 
 let reportGeocoderResult = null;
+let reportNaverUrl = "";
 
 function initReportModal() {
   const overlay = document.getElementById("report-modal-overlay");
@@ -800,57 +801,56 @@ function initReportModal() {
     if (e.target === e.currentTarget) closeReportModal();
   });
 
-  // 네이버맵 URL에서 가게명 추출 (CORS 프록시 사용)
+  // 네이버맵 URL에서 가게명 추출 (allorigins /get JSON 엔드포인트 사용)
   async function extractQueryFromNaverUrl(raw) {
     try {
       const url = new URL(raw);
       const host = url.hostname;
+      const isNaverMap = host === "map.naver.com" || host === "m.map.naver.com";
+      const isNaverMe = host === "naver.me";
 
-      // naver.me 단축 URL → 프록시로 최종 URL 추출
-      if (host === "naver.me") {
-        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(raw);
-        const res = await fetch(proxyUrl, { redirect: "follow" });
-        const html = await res.text();
-        return extractNameFromNaverHtml(html);
-      }
+      if (!isNaverMap && !isNaverMe) return null;
 
-      if (host === "map.naver.com" || host === "m.map.naver.com") {
+      // /v5/search/가게명 형태는 프록시 없이 바로 추출
+      if (isNaverMap) {
         const seg = url.pathname.split("/");
-
-        // /v5/search/가게명
         const si = seg.indexOf("search");
-        if (si !== -1 && seg[si + 1]) {
-          return decodeURIComponent(seg[si + 1]);
-        }
+        if (si !== -1 && seg[si + 1]) return decodeURIComponent(seg[si + 1]);
 
-        // /v5/entry/place/{id} → 프록시로 페이지 제목 추출
-        const ei = seg.indexOf("place");
-        if (ei !== -1) {
-          const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(raw);
-          const res = await fetch(proxyUrl);
-          const html = await res.text();
-          return extractNameFromNaverHtml(html);
-        }
-
-        // ?query= 파라미터
         const q = url.searchParams.get("query") || url.searchParams.get("q");
         if (q) return q;
       }
-    } catch {
-      // URL 파싱 실패 → 텍스트로 검색
-    }
+
+      // naver.me 단축URL 또는 /entry/place/{id} → allorigins /get (JSON, 서버사이드 리다이렉트 따름)
+      const proxyRes = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(raw));
+      const data = await proxyRes.json();
+      const html = data.contents || "";
+
+      // HTML에서 og:title 또는 <title> 추출
+      const name = extractNameFromNaverHtml(html);
+      if (name) return name;
+
+      // 최종 리다이렉트 URL에 /search/ 포함 시 거기서 추출
+      const finalUrl = data.status?.url;
+      if (finalUrl) {
+        const fu = new URL(finalUrl);
+        const seg = fu.pathname.split("/");
+        const si = seg.indexOf("search");
+        if (si !== -1 && seg[si + 1]) return decodeURIComponent(seg[si + 1]);
+      }
+    } catch { }
     return null;
   }
 
   function extractNameFromNaverHtml(html) {
-    // og:title 우선
-    const og = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
-    if (og) return og[1].replace(/\s*[:：]\s*네이버\s*지도.*$/i, "").trim();
+    if (!html) return null;
+    // og:title (속성 순서 무관)
+    const og = html.match(/property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
+      || html.match(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+    if (og) return og[1].replace(/\s*[-|:：]\s*네이버\s*지도.*/i, "").trim();
 
-    // <title> 태그
-    const t = html.match(/<title>([^<]+)<\/title>/i);
-    if (t) return t[1].replace(/\s*[:：]\s*네이버\s*지도.*$/i, "").trim();
+    const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (t) return t[1].replace(/\s*[-|:：]\s*네이버\s*지도.*/i, "").trim();
 
     return null;
   }
@@ -866,20 +866,28 @@ function initReportModal() {
     const resetBtn = () => { btn.textContent = "검색"; btn.disabled = false; };
 
     let query = raw;
+    reportNaverUrl = "";
+
     if (raw.startsWith("http")) {
+      try {
+        const testUrl = new URL(raw);
+        const h = testUrl.hostname;
+        const isNaver = h === "map.naver.com" || h === "m.map.naver.com" || h === "naver.me";
+        if (!isNaver) {
+          resetBtn();
+          showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
+          return;
+        }
+      } catch { /* 파싱 실패 시 텍스트로 검색 */ }
+
       const extracted = await extractQueryFromNaverUrl(raw);
       if (extracted) {
         query = extracted;
+        reportNaverUrl = raw; // 원본 네이버 URL 저장
       } else {
-        // 네이버맵 URL이지만 추출 실패 시 그냥 검색 시도
-        try {
-          const url = new URL(raw);
-          if (url.hostname !== "map.naver.com" && url.hostname !== "m.map.naver.com" && url.hostname !== "naver.me") {
-            resetBtn();
-            showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
-            return;
-          }
-        } catch { /* 텍스트로 검색 */ }
+        // 추출 실패해도 링크 저장 후 원본 텍스트로 검색
+        reportNaverUrl = raw;
+        showToast("링크에서 가게명을 찾지 못해 링크 텍스트로 검색합니다.", "error");
       }
     }
 
@@ -944,6 +952,7 @@ function initReportModal() {
     document.getElementById("report-name").value = "";
     document.getElementById("report-address").value = "";
     reportGeocoderResult = null;
+    reportNaverUrl = "";
     document.getElementById("report-search-input").focus();
   });
 
@@ -987,6 +996,7 @@ function initReportModal() {
         lng: reportGeocoderResult.lng,
         brands,
         comment: document.getElementById("report-comment").value.trim(),
+        naverUrl: reportNaverUrl || "",
         reportedBy: currentUser?.nickname || "익명",
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1008,6 +1018,7 @@ function openReportModal() {
   document.getElementById("report-form").reset();
   document.getElementById("report-search-input").value = "";
   reportGeocoderResult = null;
+  reportNaverUrl = "";
   document.getElementById("report-place-results").style.display = "none";
   document.getElementById("report-selected-card").style.display = "none";
   document.getElementById("report-name").value = "";

@@ -175,6 +175,7 @@
             <th>#</th>
             <th>가게명</th>
             <th>주소</th>
+            <th>네이버맵</th>
             <th>논알콜 종류</th>
             <th>한마디</th>
             <th>좌표</th>
@@ -313,7 +314,7 @@
     table.style.display = "table";
 
     if (!reports.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="td-empty">대기 중인 제보가 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="td-empty">대기 중인 제보가 없습니다.</td></tr>`;
       return;
     }
 
@@ -322,6 +323,7 @@
         <td class="td-num">${i + 1}</td>
         <td class="td-name">${h(r.name)}</td>
         <td class="td-address">${h(r.address)}</td>
+        <td style="font-size:12px">${r.naverUrl ? `<a href="${h(r.naverUrl)}" target="_blank" rel="noopener" style="color:#10b981;word-break:break-all">링크 보기</a>` : "<span style='color:#aaa'>없음</span>"}</td>
         <td class="td-brands">${(r.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
         <td class="td-desc">${h(r.comment||"")}</td>
         <td style="font-size:11px;color:${r.lat&&r.lng?'#10b981':'#ef4444'}">
