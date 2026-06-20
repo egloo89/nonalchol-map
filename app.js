@@ -250,7 +250,10 @@ function initMap() {
   });
 
   kakao.maps.event.addListener(map, "click", (mouseEvent) => {
-    closeInfoWindow();
+    if (currentInfoWindow) {
+      closeInfoWindow();
+      return;
+    }
     searchAndShowPoiInfo(mouseEvent.latLng);
   });
 
@@ -474,6 +477,12 @@ function renderMarkers(filtered) {
       map.panTo(position);
     });
 
+    // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 새 탭 이동)
+    infoEl.querySelector(".btn-naver-map")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      kakao.maps.event.preventMap();
+    });
+
     markers.push(marker);
     infoOverlays.push(infoOverlay);
   });
@@ -513,7 +522,7 @@ function buildInfoWindowContent(place) {
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
       ${place.hours ? `<div class="iw-meta">🕐 ${escapeHtml(place.hours)}</div>` : ""}
       <div class="iw-meta" style="margin-top:6px">추가: ${escapeHtml(place.addedBy || "익명")}</div>
-      <a href="${naverUrl}" target="_blank" rel="noopener" class="btn-naver-map" onclick="event.stopPropagation()">네이버맵 바로가기</a>
+      <a href="${naverUrl}" target="_blank" rel="noopener" class="btn-naver-map">네이버맵 바로가기</a>
     </div>
   `;
 }
