@@ -618,8 +618,8 @@ function initBrandFilter() {
   if (!container) return;
   const chips = ["전체", ...BRANDS];
   const hiddenCount = chips.length - FILTER_PREVIEW;
-  // PC는 기본 펼침, 모바일은 기본 접힘
-  let expanded = window.matchMedia("(min-width: 641px)").matches;
+  // 기본은 펼친 상태 (PC·모바일 공통). 접기 버튼으로만 접힘
+  let expanded = true;
 
   container.innerHTML =
     chips.map((b, i) => `
