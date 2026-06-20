@@ -270,8 +270,28 @@ function closeInfoWindow() {
 
 // ─── 기존 카카오맵 POI 클릭 정보 표시 ─────────────
 
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 function searchAndShowPoiInfo(latlng) {
   if (!window.kakao?.maps?.services) return;
+
+  // NON 등록된 가게 근처(80m 이내) 클릭은 POI 팝업 표시 안 함
+  const clickLat = latlng.getLat();
+  const clickLng = latlng.getLng();
+  const nearbyNon = places.some((p) => {
+    const lat = Number(p.lat);
+    const lng = Number(p.lng);
+    if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return false;
+    return haversineDistance(clickLat, clickLng, lat, lng) < 80;
+  });
+  if (nearbyNon) return;
+
   // 줌 레벨에 따른 검색 반경 조정 (정확도 향상)
   const levelRadii = { 1: 8, 2: 12, 3: 18, 4: 24, 5: 30, 6: 40, 7: 50 };
   const radius = levelRadii[map.getLevel()] ?? 30;
@@ -481,6 +501,9 @@ function buildInfoWindowContent(place) {
     .map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`)
     .join("");
 
+  const naverQuery = encodeURIComponent((place.name || "") + " " + (place.address || ""));
+  const naverUrl = "https://map.naver.com/v5/search/" + naverQuery;
+
   return `
     <div class="info-window">
       <div class="iw-name">${escapeHtml(place.name)}</div>
@@ -490,6 +513,7 @@ function buildInfoWindowContent(place) {
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
       ${place.hours ? `<div class="iw-meta">🕐 ${escapeHtml(place.hours)}</div>` : ""}
       <div class="iw-meta" style="margin-top:6px">추가: ${escapeHtml(place.addedBy || "익명")}</div>
+      <a href="${naverUrl}" target="_blank" rel="noopener" class="btn-naver-map" onclick="event.stopPropagation()">네이버맵 바로가기</a>
     </div>
   `;
 }
