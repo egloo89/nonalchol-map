@@ -768,7 +768,6 @@ document.getElementById("add-form").addEventListener("submit", async (e) => {
 // ─── 가게 제보 ─────────────────────────────────────
 
 let reportGeocoderResult = null;
-let reportNaverUrl = "";
 
 function initReportModal() {
   const overlay = document.getElementById("report-modal-overlay");
@@ -798,149 +797,20 @@ function initReportModal() {
   document.getElementById("report-modal-close").addEventListener("click", closeReportModal);
   document.getElementById("btn-report-cancel").addEventListener("click", closeReportModal);
   // 배경 클릭으로는 닫히지 않음 (X 버튼만으로 닫기)
-  document.getElementById("btn-naver-hint-clear")?.addEventListener("click", hideNaverUrlSavedHint);
-
-  // 여러 CORS 프록시를 순서대로 시도 (HTML 또는 최종 URL 반환)
-  async function fetchViaProxy(targetUrl) {
-    // 1) allorigins /get (JSON, 리다이렉트 따름, 최종 URL도 제공)
-    try {
-      const res = await fetch("https://api.allorigins.win/get?url=" + encodeURIComponent(targetUrl));
-      if (res.ok) {
-        const data = await res.json();
-        if (data.contents) return { html: data.contents, finalUrl: data.status?.url || "" };
-      }
-    } catch { }
-    // 2) corsproxy.io
-    try {
-      const res = await fetch("https://corsproxy.io/?url=" + encodeURIComponent(targetUrl));
-      if (res.ok) {
-        const html = await res.text();
-        if (html) return { html, finalUrl: res.url || "" };
-      }
-    } catch { }
-    // 3) allorigins /raw
-    try {
-      const res = await fetch("https://api.allorigins.win/raw?url=" + encodeURIComponent(targetUrl));
-      if (res.ok) {
-        const html = await res.text();
-        if (html) return { html, finalUrl: "" };
-      }
-    } catch { }
-    return null;
-  }
-
-  // 네이버맵 URL에서 가게명 추출
-  async function extractQueryFromNaverUrl(raw) {
-    try {
-      const url = new URL(raw);
-      const host = url.hostname;
-      const isNaverMap = host === "map.naver.com" || host === "m.map.naver.com";
-      const isNaverMe = host === "naver.me";
-
-      if (!isNaverMap && !isNaverMe) return null;
-
-      // /v5/search/가게명 형태는 프록시 없이 바로 추출
-      if (isNaverMap) {
-        const seg = url.pathname.split("/");
-        const si = seg.indexOf("search");
-        if (si !== -1 && seg[si + 1]) return decodeURIComponent(seg[si + 1]);
-
-        const q = url.searchParams.get("query") || url.searchParams.get("q");
-        if (q) return q;
-      }
-
-      // naver.me 단축URL 또는 /entry/place/{id} → 프록시로 HTML/최종URL 추출
-      const proxied = await fetchViaProxy(raw);
-      if (!proxied) return null;
-
-      const name = extractNameFromNaverHtml(proxied.html);
-      if (name) return name;
-
-      // 최종 리다이렉트 URL에 /search/ 포함 시 거기서 추출
-      if (proxied.finalUrl) {
-        try {
-          const fu = new URL(proxied.finalUrl);
-          const seg = fu.pathname.split("/");
-          const si = seg.indexOf("search");
-          if (si !== -1 && seg[si + 1]) return decodeURIComponent(seg[si + 1]);
-        } catch { }
-      }
-    } catch { }
-    return null;
-  }
-
-  function extractNameFromNaverHtml(html) {
-    if (!html) return null;
-    // og:title (속성 순서 무관)
-    const og = html.match(/property=["']og:title["'][^>]*content=["']([^"']+)["']/i)
-      || html.match(/content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
-    if (og) return cleanNaverName(og[1]);
-
-    // JSON 내 placeName / name 필드 (네이버 place 페이지 초기 데이터)
-    const pj = html.match(/"placeName"\s*:\s*"([^"]+)"/) || html.match(/"name"\s*:\s*"([^"]+)"/);
-    if (pj) return cleanNaverName(pj[1]);
-
-    const t = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    if (t) return cleanNaverName(t[1]);
-
-    return null;
-  }
-
-  function cleanNaverName(s) {
-    return s.replace(/\s*[-|:：]\s*네이버\s*지도.*/i, "").replace(/\s*:\s*네이버.*/i, "").trim();
-  }
-
 
   const REPORT_PAGE_SIZE = 5;
-  let reportResults = [];      // 정렬·필터된 전체 결과
-  let reportPage = 1;          // 현재 페이지 (1부터)
+  let reportResults = [];
+  let reportPage = 1;
 
   // 검색 실행 (버튼 클릭 / 엔터 공통)
-  async function runReportSearch() {
+  function runReportSearch() {
     const raw = document.getElementById("report-search-input").value.trim();
-    if (!raw) { showToast("가게 이름, 주소, 또는 링크를 입력해 주세요."); return; }
+    if (!raw) { showToast("가게 이름이나 주소를 입력해 주세요."); return; }
 
     const btn = document.getElementById("btn-report-address");
     btn.textContent = "검색 중...";
     btn.disabled = true;
     const resetBtn = () => { btn.textContent = "검색"; btn.disabled = false; };
-
-    let query = raw;
-    // naver 힌트가 표시 중일 때는 reportNaverUrl 유지, 새 URL 입력 시에만 초기화
-    if (!raw.startsWith("http")) reportNaverUrl = reportNaverUrl; // 유지
-
-    if (raw.startsWith("http")) {
-      let isNaver = false;
-      try {
-        const testUrl = new URL(raw);
-        const h = testUrl.hostname;
-        isNaver = h === "map.naver.com" || h === "m.map.naver.com" || h === "naver.me";
-        if (!isNaver) {
-          resetBtn();
-          showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
-          return;
-        }
-      } catch { /* 파싱 실패 시 텍스트로 검색 */ }
-
-      if (isNaver) {
-        // naver.me 단축링크: JS렌더 페이지라 프록시로 파싱 불가 → 링크 저장 후 가게명 입력 안내
-        const isShort = new URL(raw).hostname === "naver.me";
-        const extracted = isShort ? null : await extractQueryFromNaverUrl(raw);
-
-        if (extracted) {
-          query = extracted;
-          reportNaverUrl = raw;
-        } else {
-          // naver.me 단축링크 또는 파싱 실패 → URL 저장 + 입력칸 초기화 후 안내
-          reportNaverUrl = raw;
-          resetBtn();
-          document.getElementById("report-search-input").value = "";
-          showNaverUrlSavedHint();
-          document.getElementById("report-search-input").focus();
-          return;
-        }
-      }
-    }
 
     if (!window.kakao?.maps?.services) {
       resetBtn();
@@ -949,8 +819,7 @@ function initReportModal() {
     }
 
     const ps = new kakao.maps.services.Places();
-    // 음식점(FD6)·술집·카페(CE7) 위주, 한 번에 최대 15개
-    ps.keywordSearch(query, (data, status) => {
+    ps.keywordSearch(raw, (data, status) => {
       resetBtn();
       if (status !== kakao.maps.services.Status.OK || !data.length) {
         showToast("검색 결과가 없습니다. 다른 키워드나 주소로 시도해 보세요.", "error");
@@ -962,7 +831,7 @@ function initReportModal() {
     }, { size: 15 });
   }
 
-  // 서울·경기·인천 우선 정렬 (업종 필터 없음 - 가게명으로 검색 시 모두 표시)
+  // 서울·경기·인천 우선 정렬
   function sortByRegion(data) {
     const PRIORITY = ["서울", "경기", "인천"];
     const regionRank = (p) => {
@@ -974,18 +843,6 @@ function initReportModal() {
       .map((p, i) => ({ p, i, rank: regionRank(p) }))
       .sort((a, b) => a.rank - b.rank || a.i - b.i)
       .map((x) => x.p);
-  }
-
-  function showNaverUrlSavedHint() {
-    const hint = document.getElementById("naver-url-saved-hint");
-    if (!hint) return;
-    hint.style.display = "flex";
-  }
-
-  function hideNaverUrlSavedHint() {
-    const hint = document.getElementById("naver-url-saved-hint");
-    if (hint) hint.style.display = "none";
-    reportNaverUrl = "";
   }
 
   function renderReportResults() {
@@ -1043,15 +900,22 @@ function initReportModal() {
   function selectReportPlace(place) {
     reportGeocoderResult = { lat: parseFloat(place.y), lng: parseFloat(place.x) };
     const addr = place.road_address_name || place.address_name || "";
-    // hidden 필드에 저장
     document.getElementById("report-name").value = place.place_name || "";
     document.getElementById("report-address").value = addr;
-    // 선택 카드 표시
+
     document.getElementById("spc-name").textContent = place.place_name || "";
     document.getElementById("spc-addr").textContent = addr;
     document.getElementById("spc-coords").textContent =
       `위도 ${reportGeocoderResult.lat.toFixed(5)}, 경도 ${reportGeocoderResult.lng.toFixed(5)}`;
     if (place.phone) document.getElementById("spc-coords").textContent += `  📞 ${place.phone}`;
+
+    // 네이버 맵 바로가기 링크 설정
+    const naverLink = document.getElementById("spc-naver-link");
+    if (naverLink) {
+      const q = encodeURIComponent((place.place_name || "") + " " + addr);
+      naverLink.href = "https://map.naver.com/v5/search/" + q;
+    }
+
     document.getElementById("report-selected-card").style.display = "block";
     showToast(`'${place.place_name}' 선택됐습니다!`, "success");
   }
@@ -1061,7 +925,6 @@ function initReportModal() {
     document.getElementById("report-name").value = "";
     document.getElementById("report-address").value = "";
     reportGeocoderResult = null;
-    hideNaverUrlSavedHint();
     document.getElementById("report-search-input").focus();
   });
 
@@ -1105,7 +968,6 @@ function initReportModal() {
         lng: reportGeocoderResult.lng,
         brands,
         comment: document.getElementById("report-comment").value.trim(),
-        naverUrl: reportNaverUrl || "",
         reportedBy: currentUser?.nickname || "익명",
         status: "pending",
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1127,9 +989,6 @@ function openReportModal() {
   document.getElementById("report-form").reset();
   document.getElementById("report-search-input").value = "";
   reportGeocoderResult = null;
-  reportNaverUrl = "";
-  const hint = document.getElementById("naver-url-saved-hint");
-  if (hint) hint.style.display = "none";
   document.getElementById("report-place-results").style.display = "none";
   document.getElementById("report-selected-card").style.display = "none";
   document.getElementById("report-name").value = "";
