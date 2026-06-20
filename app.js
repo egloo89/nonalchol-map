@@ -477,10 +477,12 @@ function renderMarkers(filtered) {
       map.panTo(position);
     });
 
-    // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 새 탭 이동)
+    // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 직접 새 탭 이동)
     infoEl.querySelector(".btn-naver-map")?.addEventListener("click", (e) => {
       e.stopPropagation();
+      e.preventDefault();
       kakao.maps.event.preventMap();
+      window.open(e.currentTarget.href, "_blank", "noopener,noreferrer");
     });
 
     markers.push(marker);
