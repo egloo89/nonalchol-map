@@ -387,7 +387,13 @@ body {
   white-space: normal;
   overflow-wrap: break-word;
   word-break: keep-all;
-  line-height: 1.25;
+  line-height: 1.35;
+}
+
+.filter-chip .chip-sub {
+  font-size: 10px;
+  opacity: 0.75;
+  display: block;
 }
 
 .filter-chip:hover {

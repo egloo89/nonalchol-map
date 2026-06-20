@@ -626,7 +626,7 @@ function initBrandFilter() {
         class="filter-chip${i === 0 ? " active chip-all" : ""}${i >= FILTER_PREVIEW ? " chip-collapsed" : ""}"
         data-brand="${escapeHtml(b)}">
         <span class="chip-icon">${BRAND_ICONS[b] || "🍺"}</span>
-        <span class="chip-label">${escapeHtml(b)}</span>
+        <span class="chip-label">${escapeHtml(b).replace("(종류 무관)", "<br><span class='chip-sub'>(종류 무관)</span>")}</span>
       </button>`).join("") +
     `<button type="button" id="filter-toggle" class="filter-toggle">
        <span id="filter-toggle-text">${expanded ? "▲ 접기" : `+ ${hiddenCount}개 더 보기`}</span>
