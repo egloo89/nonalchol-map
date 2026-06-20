@@ -1244,26 +1244,29 @@ body {
   .search-section.open { display: block; }
   .search-section #search-input {
     width: calc(100% - 24px);
-    margin: 0 12px 10px;
-    font-size: 13px;
-    padding: 8px 11px;
+    margin: 0 12px 12px;
+    font-size: 16px;
+    padding: 13px 14px;
+    border-radius: 12px;
   }
 
   /* ── 알콜 안내 ── */
-  #abv-guide { font-size: 10px; padding: 5px 10px; }
+  #abv-guide { font-size: 11px; padding: 7px 12px; }
 
-  /* ── 필터 ── */
-  #brand-filter { padding: 8px 10px; gap: 5px; }
+  /* ── 필터: 탭하기 쉽게 크게 ── */
+  #brand-filter { padding: 10px 12px; gap: 8px; }
 
   .filter-chip {
-    font-size: 11px;
-    padding: 6px 7px;
-    gap: 4px;
-    border-radius: 7px;
+    font-size: 14px;
+    padding: 12px 12px;
+    gap: 7px;
+    border-radius: 10px;
+    min-height: 48px;
   }
 
-  .filter-chip .chip-icon { font-size: 12px; flex-shrink: 0; }
-  #filter-toggle { font-size: 11px; padding: 6px; }
+  .filter-chip .chip-icon { font-size: 17px; flex-shrink: 0; }
+  .filter-chip .chip-sub { font-size: 11px; }
+  #filter-toggle { font-size: 14px; padding: 12px; min-height: 44px; }
 
   /* ── 가게 카드 ── */
   .place-card { padding: 11px; }
