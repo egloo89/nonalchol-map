@@ -800,8 +800,63 @@ function initReportModal() {
     if (e.target === e.currentTarget) closeReportModal();
   });
 
+  // 네이버맵 URL에서 가게명 추출 (CORS 프록시 사용)
+  async function extractQueryFromNaverUrl(raw) {
+    try {
+      const url = new URL(raw);
+      const host = url.hostname;
+
+      // naver.me 단축 URL → 프록시로 최종 URL 추출
+      if (host === "naver.me") {
+        const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(raw);
+        const res = await fetch(proxyUrl, { redirect: "follow" });
+        const html = await res.text();
+        return extractNameFromNaverHtml(html);
+      }
+
+      if (host === "map.naver.com" || host === "m.map.naver.com") {
+        const seg = url.pathname.split("/");
+
+        // /v5/search/가게명
+        const si = seg.indexOf("search");
+        if (si !== -1 && seg[si + 1]) {
+          return decodeURIComponent(seg[si + 1]);
+        }
+
+        // /v5/entry/place/{id} → 프록시로 페이지 제목 추출
+        const ei = seg.indexOf("place");
+        if (ei !== -1) {
+          const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(raw);
+          const res = await fetch(proxyUrl);
+          const html = await res.text();
+          return extractNameFromNaverHtml(html);
+        }
+
+        // ?query= 파라미터
+        const q = url.searchParams.get("query") || url.searchParams.get("q");
+        if (q) return q;
+      }
+    } catch {
+      // URL 파싱 실패 → 텍스트로 검색
+    }
+    return null;
+  }
+
+  function extractNameFromNaverHtml(html) {
+    // og:title 우선
+    const og = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    if (og) return og[1].replace(/\s*[:：]\s*네이버\s*지도.*$/i, "").trim();
+
+    // <title> 태그
+    const t = html.match(/<title>([^<]+)<\/title>/i);
+    if (t) return t[1].replace(/\s*[:：]\s*네이버\s*지도.*$/i, "").trim();
+
+    return null;
+  }
+
   // 검색 버튼: 네이버맵 URL 파싱 → 카카오 키워드 검색 → 결과 목록
-  document.getElementById("btn-report-address").addEventListener("click", () => {
+  document.getElementById("btn-report-address").addEventListener("click", async () => {
     const raw = document.getElementById("report-search-input").value.trim();
     if (!raw) { showToast("가게 이름, 주소, 또는 링크를 입력해 주세요."); return; }
 
@@ -810,28 +865,21 @@ function initReportModal() {
     btn.disabled = true;
     const resetBtn = () => { btn.textContent = "검색"; btn.disabled = false; };
 
-    // 네이버맵 URL → 검색어 추출
     let query = raw;
     if (raw.startsWith("http")) {
-      try {
-        const url = new URL(raw);
-        if (url.hostname === "map.naver.com" || url.hostname === "m.map.naver.com") {
-          // /v5/search/가게명 형태
-          const seg = url.pathname.split("/");
-          const si = seg.indexOf("search");
-          if (si !== -1 && seg[si + 1]) {
-            query = decodeURIComponent(seg[si + 1]);
-          } else {
-            // 쿼리 파라미터 ?query=...
-            query = url.searchParams.get("query") || url.searchParams.get("q") || raw;
+      const extracted = await extractQueryFromNaverUrl(raw);
+      if (extracted) {
+        query = extracted;
+      } else {
+        // 네이버맵 URL이지만 추출 실패 시 그냥 검색 시도
+        try {
+          const url = new URL(raw);
+          if (url.hostname !== "map.naver.com" && url.hostname !== "m.map.naver.com" && url.hostname !== "naver.me") {
+            resetBtn();
+            showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
+            return;
           }
-        } else {
-          resetBtn();
-          showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
-          return;
-        }
-      } catch {
-        // URL 파싱 실패 → 그냥 텍스트로 검색
+        } catch { /* 텍스트로 검색 */ }
       }
     }
 
