@@ -469,6 +469,7 @@ function renderMarkers(filtered) {
       map: null,
       yAnchor: 1.15,
       zIndex: 5,
+      clickable: true,
     });
 
     // 마커 터치/클릭 (touchstart로 모바일에서 더 빨리 감지)
@@ -487,12 +488,11 @@ function renderMarkers(filtered) {
     }, { passive: true });
     markerEl.addEventListener("click", openNonInfo);
 
-    // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 직접 새 탭 이동)
+    // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 새 탭 이동)
     infoEl.querySelector(".btn-naver-map")?.addEventListener("click", (e) => {
       e.stopPropagation();
-      e.preventDefault();
       kakao.maps.event.preventMap();
-      window.open(e.currentTarget.href, "_blank", "noopener,noreferrer");
+      // 기본 앵커 동작(target=_blank)으로 이동 — preventDefault 하지 않음
     });
 
     markers.push(marker);
@@ -532,7 +532,6 @@ function buildInfoWindowContent(place) {
       ${place.description ? `<div class="iw-desc">${escapeHtml(place.description)}</div>` : ""}
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
       ${place.hours ? `<div class="iw-meta">🕐 ${escapeHtml(place.hours)}</div>` : ""}
-      <div class="iw-meta" style="margin-top:6px">추가: ${escapeHtml(place.addedBy || "익명")}</div>
       <a href="${naverUrl}" target="_blank" rel="noopener" class="btn-naver-map">네이버맵 바로가기</a>
     </div>
   `;

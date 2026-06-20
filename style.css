@@ -938,6 +938,18 @@ body {
 
 .btn-naver-map:hover { background: #02a94e; }
 
+/* NON 정보창 안의 네이버맵 버튼 (전체폭, 흰 글씨) */
+.info-window .btn-naver-map {
+  display: block;
+  width: 100%;
+  text-align: center;
+  color: #fff;
+  font-size: 13px;
+  margin-top: 10px;
+  padding: 9px;
+}
+.info-window .btn-naver-map:hover { text-decoration: none; }
+
 /* ─── 가게 검색결과 리스트 ─── */
 .place-results-list {
   border: 1.5px solid var(--primary);
@@ -1245,9 +1257,15 @@ body {
 
   .address-row { gap: 6px; }
 
-  /* ── 정보창 ── */
-  .info-window { min-width: 190px; max-width: 240px; padding: 12px; }
-  .info-window .iw-name { font-size: 14px; }
+  /* ── 정보창: 모바일에서 더 작게 ── */
+  .info-window { min-width: 150px; max-width: 200px; padding: 10px; }
+  .info-window .iw-name { font-size: 13px; margin-bottom: 3px; }
+  .info-window .iw-address { font-size: 11px; }
+  .info-window .iw-desc { font-size: 11px; }
+  .info-window .iw-meta { font-size: 11px; }
+  .info-window .brand-tag { font-size: 10px; padding: 1px 6px; }
+  .info-window .btn-naver-map { font-size: 12px; padding: 7px; margin-top: 8px; }
+  .iw-close { width: 20px; height: 20px; font-size: 11px; }
 
   /* ── 토스트: 사이드바 위 ── */
   #toast {
