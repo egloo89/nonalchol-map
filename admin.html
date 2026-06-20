@@ -89,6 +89,12 @@
       border:1px solid var(--danger); border-radius:6px; font-size:12px;
       cursor:pointer; transition:all .15s; white-space:nowrap;
     }
+    .btn-fix-coord {
+      margin-top:4px; padding:3px 8px; background:#fef3c7; color:#92400e;
+      border:1px solid #fcd34d; border-radius:5px; font-size:11px;
+      cursor:pointer; white-space:nowrap;
+    }
+    .btn-fix-coord:hover { background:#fde68a; }
     .btn-del:hover { background:var(--danger); color:white; }
 
     /* ── 탭 ── */
@@ -160,6 +166,7 @@
             <th>설명</th>
             <th>전화</th>
             <th>영업시간</th>
+            <th>좌표</th>
             <th>추가한 사람</th>
             <th>등록일</th>
             <th>관리</th>
@@ -266,11 +273,16 @@
   function renderTable(places) {
     const tbody = document.getElementById("places-tbody");
     if (!places.length) {
-      tbody.innerHTML = `<tr><td colspan="10" class="td-empty">등록된 가게가 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="11" class="td-empty">등록된 가게가 없습니다.</td></tr>`;
       document.getElementById("places-table").style.display = "table";
       return;
     }
-    tbody.innerHTML = places.map((p, i) => `
+    tbody.innerHTML = places.map((p, i) => {
+      const hasCoords = p.lat && p.lng && !(p.lat === 0 && p.lng === 0);
+      const coordCell = hasCoords
+        ? `<span style="color:#10b981;font-size:11px">✓ ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</span>`
+        : `<span style="color:#ef4444;font-size:11px">❌ 좌표 없음</span><br><button class="btn-fix-coord" onclick="fixCoords('${p.id}','${h(p.address)}')">📍 주소로 재설정</button>`;
+      return `
       <tr>
         <td class="td-num">${i + 1}</td>
         <td class="td-name">${h(p.name)}</td>
@@ -279,11 +291,31 @@
         <td class="td-desc">${h(p.description||"")}</td>
         <td>${h(p.phone||"")}</td>
         <td>${h(p.hours||"")}</td>
+        <td style="font-size:11px">${coordCell}</td>
         <td>${h(p.addedBy||"익명")}</td>
         <td style="white-space:nowrap">${fmtDate(p.createdAt)}</td>
         <td><button class="btn-del" onclick="del('${p.id}')">삭제</button></td>
-      </tr>
-    `).join("");
+      </tr>`;
+    }).join("");
+  }
+
+  async function fixCoords(id, address) {
+    kakao.maps.load(async () => {
+      try {
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.addressSearch(address, async (result, status) => {
+          if (status === kakao.maps.services.Status.OK && result.length > 0) {
+            const lat = parseFloat(result[0].y);
+            const lng = parseFloat(result[0].x);
+            await db.collection("places").doc(id).update({ lat, lng });
+            alert(`✅ 좌표 재설정 완료!\n위도: ${lat.toFixed(5)}\n경도: ${lng.toFixed(5)}\n\n지도에서 NON 마커가 표시됩니다.`);
+          } else {
+            const manual = prompt(`주소로 좌표를 찾지 못했습니다.\n가게 주소를 더 자세히 입력해 주세요:\n\n현재 주소: ${address}`);
+            if (manual) fixCoords(id, manual);
+          }
+        });
+      } catch(e) { alert("지오코딩 오류: " + e.message); }
+    });
   }
 
   async function del(id) {
