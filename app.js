@@ -251,8 +251,8 @@ function initMap() {
   });
 
   kakao.maps.event.addListener(map, "click", (mouseEvent) => {
-    // NON 마커 클릭 직후(300ms) 발생한 맵 클릭은 무시
-    if (Date.now() - lastNonMarkerClick < 300) return;
+    // NON 마커 클릭 직후(500ms) 발생한 맵 클릭은 무시 (모바일 touch 지연 대응)
+    if (Date.now() - lastNonMarkerClick < 500) return;
     if (currentInfoWindow) {
       closeInfoWindow();
       return;
@@ -294,7 +294,7 @@ function searchAndShowPoiInfo(latlng) {
     const lat = Number(p.lat);
     const lng = Number(p.lng);
     if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return false;
-    return haversineDistance(clickLat, clickLng, lat, lng) < 80;
+    return haversineDistance(clickLat, clickLng, lat, lng) < 150;
   });
   if (nearbyNon) return;
 
@@ -311,6 +311,8 @@ function searchAndShowPoiInfo(latlng) {
 }
 
 function showPoiInfoWindow(place, position) {
+  // 비동기 검색 대기 중 NON 정보창이 열렸으면 POI 팝업 취소
+  if (currentInfoWindow) return;
   currentPoiPlace = place;
   const infoEl = document.createElement("div");
   infoEl.innerHTML = buildPoiContent(place);
@@ -469,8 +471,8 @@ function renderMarkers(filtered) {
       zIndex: 5,
     });
 
-    // 마커 클릭
-    markerEl.addEventListener("click", (e) => {
+    // 마커 터치/클릭 (touchstart로 모바일에서 더 빨리 감지)
+    const openNonInfo = (e) => {
       e.stopPropagation();
       kakao.maps.event.preventMap();
       lastNonMarkerClick = Date.now();
@@ -479,7 +481,11 @@ function renderMarkers(filtered) {
       currentInfoWindow = infoOverlay;
       highlightCard(place.id);
       map.panTo(position);
-    });
+    };
+    markerEl.addEventListener("touchstart", (e) => {
+      lastNonMarkerClick = Date.now(); // 클릭 핸들러보다 먼저 타임스탬프 기록
+    }, { passive: true });
+    markerEl.addEventListener("click", openNonInfo);
 
     // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 직접 새 탭 이동)
     infoEl.querySelector(".btn-naver-map")?.addEventListener("click", (e) => {

@@ -1161,18 +1161,41 @@ body {
 
   #map-container { height: 45vh; flex: none; }
 
-  /* ── 사이드바 ── */
+  /* ── 사이드바: 전체를 하나의 스크롤 영역으로 ── */
   #sidebar {
     position: static;
     width: 100%;
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     border-right: none;
     border-top: 1px solid var(--border);
     box-shadow: none;
+    /* 검색창을 스크롤 시에도 상단에 고정 */
+    display: block;
   }
 
-  #sidebar-header { padding: 10px 12px; }
+  /* place-list는 별도 스크롤 해제 (사이드바 전체가 스크롤) */
+  #place-list {
+    overflow: visible;
+    min-height: unset;
+    height: auto;
+    flex: unset;
+  }
+
+  /* 검색창 + 제보버튼 고정 (스크롤해도 상단에 유지) */
+  #sidebar-header {
+    position: sticky;
+    top: 0;
+    background: var(--card-bg);
+    z-index: 20;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
   #search-input { font-size: 13px; padding: 8px 11px; }
 
   /* ── 알콜 안내 ── */
