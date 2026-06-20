@@ -164,8 +164,7 @@
             <th>주소</th>
             <th>논알콜 종류</th>
             <th>설명</th>
-            <th>전화</th>
-            <th>영업시간</th>
+            <th>네이버맵</th>
             <th>좌표</th>
             <th>추가한 사람</th>
             <th>등록일</th>
@@ -273,7 +272,7 @@
   function renderTable(places) {
     const tbody = document.getElementById("places-tbody");
     if (!places.length) {
-      tbody.innerHTML = `<tr><td colspan="11" class="td-empty">등록된 가게가 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="10" class="td-empty">등록된 가게가 없습니다.</td></tr>`;
       document.getElementById("places-table").style.display = "table";
       return;
     }
@@ -289,8 +288,7 @@
         <td class="td-address">${h(p.address)}</td>
         <td class="td-brands">${(p.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
         <td class="td-desc">${h(p.description||"")}</td>
-        <td>${h(p.phone||"")}</td>
-        <td>${h(p.hours||"")}</td>
+        <td><a href="https://map.naver.com/v5/search/${encodeURIComponent((p.name||'')+" "+(p.address||''))}" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;font-size:12px">네이버 맵</a></td>
         <td style="font-size:11px">${coordCell}</td>
         <td>${h(p.addedBy||"익명")}</td>
         <td style="white-space:nowrap">${fmtDate(p.createdAt)}</td>
