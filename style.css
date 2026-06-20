@@ -1159,10 +1159,12 @@ body {
     height: 100dvh;
   }
 
-  #map-container { height: 45vh; flex: none; }
+  /* 지도를 위로, 가게 제보/필터/목록 섹션을 지도 아래로 */
+  #map-container { height: 45vh; flex: none; order: 1; }
 
   /* ── 사이드바: 전체를 하나의 스크롤 영역으로 ── */
   #sidebar {
+    order: 2;
     position: static;
     width: 100%;
     flex: 1;
