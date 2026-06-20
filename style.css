@@ -918,6 +918,37 @@ body {
 .prl-cat  { font-size: 11px; color: var(--accent); margin-top: 2px; }
 .prl-phone { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
 
+.naver-url-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.nuh-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+.nuh-text { flex: 1; line-height: 1.5; }
+.nuh-text strong { color: #b45309; }
+
+.nuh-clear {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #92400e;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nuh-clear:hover { background: #fef3c7; }
+
 .prl-pager {
   display: flex;
   gap: 6px;

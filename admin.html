@@ -308,6 +308,16 @@
     });
   }
 
+  // 네이버맵 셀: 저장된 URL이 있으면 그 링크, 없으면 가게명+주소로 네이버맵 검색 링크 생성
+  function naverMapCell(r) {
+    if (r.naverUrl) {
+      return `<a href="${h(r.naverUrl)}" target="_blank" rel="noopener" style="color:#10b981">저장된 링크</a>`;
+    }
+    const q = encodeURIComponent((r.name || "") + " " + (r.address || ""));
+    const url = "https://map.naver.com/v5/search/" + q;
+    return `<a href="${url}" target="_blank" rel="noopener" style="color:#2563eb">네이버 검색</a>`;
+  }
+
   function renderReports(reports) {
     const table = document.getElementById("reports-table");
     const tbody = document.getElementById("reports-tbody");
@@ -323,7 +333,7 @@
         <td class="td-num">${i + 1}</td>
         <td class="td-name">${h(r.name)}</td>
         <td class="td-address">${h(r.address)}</td>
-        <td style="font-size:12px">${r.naverUrl ? `<a href="${h(r.naverUrl)}" target="_blank" rel="noopener" style="color:#10b981;word-break:break-all">링크 보기</a>` : "<span style='color:#aaa'>없음</span>"}</td>
+        <td style="font-size:12px">${naverMapCell(r)}</td>
         <td class="td-brands">${(r.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
         <td class="td-desc">${h(r.comment||"")}</td>
         <td style="font-size:11px;color:${r.lat&&r.lng?'#10b981':'#ef4444'}">

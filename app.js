@@ -797,9 +797,8 @@ function initReportModal() {
   document.getElementById("btn-report-place").addEventListener("click", openReportModal);
   document.getElementById("report-modal-close").addEventListener("click", closeReportModal);
   document.getElementById("btn-report-cancel").addEventListener("click", closeReportModal);
-  overlay.addEventListener("click", (e) => {
-    if (e.target === e.currentTarget) closeReportModal();
-  });
+  // 배경 클릭으로는 닫히지 않음 (X 버튼만으로 닫기)
+  document.getElementById("btn-naver-hint-clear")?.addEventListener("click", hideNaverUrlSavedHint);
 
   // 여러 CORS 프록시를 순서대로 시도 (HTML 또는 최종 URL 반환)
   async function fetchViaProxy(targetUrl) {
@@ -910,10 +909,11 @@ function initReportModal() {
     reportNaverUrl = "";
 
     if (raw.startsWith("http")) {
+      let isNaver = false;
       try {
         const testUrl = new URL(raw);
         const h = testUrl.hostname;
-        const isNaver = h === "map.naver.com" || h === "m.map.naver.com" || h === "naver.me";
+        isNaver = h === "map.naver.com" || h === "m.map.naver.com" || h === "naver.me";
         if (!isNaver) {
           resetBtn();
           showToast("지원되지 않는 링크입니다. 가게 이름이나 주소를 직접 입력해 주세요.", "error");
@@ -921,14 +921,23 @@ function initReportModal() {
         }
       } catch { /* 파싱 실패 시 텍스트로 검색 */ }
 
-      const extracted = await extractQueryFromNaverUrl(raw);
-      if (extracted) {
-        query = extracted;
-        reportNaverUrl = raw; // 원본 네이버 URL 저장
-      } else {
-        resetBtn();
-        showToast("네이버 링크에서 가게명을 가져오지 못했습니다. 가게명을 직접 입력해 주세요.", "error");
-        return;
+      if (isNaver) {
+        // naver.me 단축링크: JS렌더 페이지라 프록시로 파싱 불가 → 링크 저장 후 가게명 입력 안내
+        const isShort = new URL(raw).hostname === "naver.me";
+        const extracted = isShort ? null : await extractQueryFromNaverUrl(raw);
+
+        if (extracted) {
+          query = extracted;
+          reportNaverUrl = raw;
+        } else {
+          // naver.me 단축링크 또는 파싱 실패 → URL 저장 + 입력칸 초기화 후 안내
+          reportNaverUrl = raw;
+          resetBtn();
+          document.getElementById("report-search-input").value = "";
+          showNaverUrlSavedHint();
+          document.getElementById("report-search-input").focus();
+          return;
+        }
       }
     }
 
@@ -975,6 +984,18 @@ function initReportModal() {
       .map((p, i) => ({ p, i, rank: regionRank(p) }))
       .sort((a, b) => a.rank - b.rank || a.i - b.i)  // 우선지역 먼저, 그 외 원래 순서
       .map((x) => x.p);
+  }
+
+  function showNaverUrlSavedHint() {
+    const hint = document.getElementById("naver-url-saved-hint");
+    if (!hint) return;
+    hint.style.display = "flex";
+  }
+
+  function hideNaverUrlSavedHint() {
+    const hint = document.getElementById("naver-url-saved-hint");
+    if (hint) hint.style.display = "none";
+    reportNaverUrl = "";
   }
 
   function renderReportResults() {
@@ -1050,7 +1071,7 @@ function initReportModal() {
     document.getElementById("report-name").value = "";
     document.getElementById("report-address").value = "";
     reportGeocoderResult = null;
-    reportNaverUrl = "";
+    hideNaverUrlSavedHint();
     document.getElementById("report-search-input").focus();
   });
 
@@ -1117,6 +1138,8 @@ function openReportModal() {
   document.getElementById("report-search-input").value = "";
   reportGeocoderResult = null;
   reportNaverUrl = "";
+  const hint = document.getElementById("naver-url-saved-hint");
+  if (hint) hint.style.display = "none";
   document.getElementById("report-place-results").style.display = "none";
   document.getElementById("report-selected-card").style.display = "none";
   document.getElementById("report-name").value = "";

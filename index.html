@@ -251,6 +251,12 @@
               placeholder="가게명 or 주소 or 해당 가게 네이버맵 링크 넣고 검색 클릭" maxlength="300" />
             <button type="button" id="btn-report-address">검색</button>
           </div>
+          <!-- 네이버 단축링크 저장 안내 -->
+          <div id="naver-url-saved-hint" class="naver-url-hint" style="display:none">
+            <span class="nuh-icon">🔗</span>
+            <span class="nuh-text">네이버 링크가 저장됐어요.<br>아래에 <strong>가게명 또는 주소</strong>로 검색해서 가게를 선택해 주세요.</span>
+            <button type="button" class="nuh-clear" id="btn-naver-hint-clear">✕ 링크 취소</button>
+          </div>
           <!-- 검색 결과 목록 -->
           <div id="report-place-results" class="place-results-list" style="display:none"></div>
         </div>
