@@ -141,8 +141,8 @@ body {
 .btn-search-toggle {
   display: none;
   width: 100%;
-  background: white;
-  color: var(--primary);
+  background: var(--primary);
+  color: white;
   border: 1.5px solid var(--primary);
   border-radius: 10px;
   padding: 12px;
@@ -152,7 +152,7 @@ body {
   margin-bottom: 10px;
   transition: all 0.15s;
 }
-.btn-search-toggle.active { background: var(--primary); color: white; }
+.btn-search-toggle.active { background: white; color: var(--primary); }
 .btn-search-toggle:active { transform: scale(0.98); }
 
 /* ─── NON 마커 ─── */
