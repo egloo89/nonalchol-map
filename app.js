@@ -219,7 +219,7 @@ function initNaver() {
 
   naverLoginInstance = new naver.LoginWithNaverId({
     clientId: NAVER_CLIENT_ID,
-    callbackUrl: location.origin + location.pathname,
+    callbackUrl: location.origin + "/index.html",
     isPopup: false,
     loginButton: { color: "green", type: 3, height: 48 },
     callbackHandle: true,
