@@ -1274,6 +1274,10 @@ body {
     font-size: 16px;
     padding: 13px 14px;
     border-radius: 12px;
+    background: white;
+    border: 2px solid var(--primary);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+    color: #111;
   }
 
   /* ── 알콜 안내 ── */
