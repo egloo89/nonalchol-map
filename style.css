@@ -1667,6 +1667,11 @@ body {
 .secret-support p { margin: 0 0 6px; }
 .secret-support p:last-child { margin: 0; }
 .secret-support a { color: #2563eb; text-decoration: none; }
+.secret-sign {
+  text-align: right;
+  font-weight: 700;
+  color: #444;
+}
 .secret-call {
   margin-top: 14px;
   background: #fff7ed;
@@ -1678,6 +1683,13 @@ body {
   color: #9a3412;
   line-height: 1.6;
 }
+.secret-feedback {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.6;
+}
+.secret-feedback a { color: #2563eb; text-decoration: none; }
 
 @media (max-width: 640px) {
   .secret-modal {
