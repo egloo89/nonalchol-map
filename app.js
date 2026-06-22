@@ -14,6 +14,7 @@ let selectedBrands = new Set(); // 비어있으면 "전체"
 let currentSearch = "";
 let currentUser = null; // { uid, nickname }
 let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
+let userLocationOverlay = null; // 현재 위치 파란 원 마커
 let lastNonMarkerClick = 0; // NON 마커 클릭 시각 (맵 클릭 이벤트 중복 방지)
 
 const BRANDS = [
@@ -1450,6 +1451,22 @@ function initMobileTopbar() {
   // 제보 pill
   document.getElementById("mobile-report-pill")?.addEventListener("click", openReportModal);
 
+  // 현재 위치 파란 원 표시
+  window.showUserLocation = function (latlng) {
+    if (userLocationOverlay) userLocationOverlay.setMap(null);
+    const el = document.createElement("div");
+    el.className = "user-location-marker";
+    el.innerHTML = `<div class="ulm-pulse"></div><div class="ulm-dot"></div>`;
+    userLocationOverlay = new kakao.maps.CustomOverlay({
+      position: latlng,
+      content: el,
+      map,
+      yAnchor: 0.5,
+      xAnchor: 0.5,
+      zIndex: 4,
+    });
+  };
+
   // 현재 위치
   document.getElementById("mobile-location-btn")?.addEventListener("click", () => {
     if (!navigator.geolocation) { showToast("위치 정보를 지원하지 않는 브라우저입니다.", "error"); return; }
@@ -1459,6 +1476,7 @@ function initMobileTopbar() {
         const latlng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
         map.setCenter(latlng);
         map.setLevel(4);
+        showUserLocation(latlng);
       },
       () => showToast("위치 정보를 가져올 수 없습니다.", "error"),
       { enableHighAccuracy: true, timeout: 8000 }

@@ -188,6 +188,36 @@ body {
 #mobile-location-btn { display: none; }
 #map-brand-label { display: none; }
 #mobile-profile-menu { display: none; }
+
+/* 현재 위치 파란 원 마커 */
+.user-location-marker {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+.user-location-marker .ulm-dot {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px; height: 16px;
+  background: #2563eb;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(37, 99, 235, 0.6);
+}
+.user-location-marker .ulm-pulse {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px; height: 16px;
+  background: rgba(37, 99, 235, 0.3);
+  border-radius: 50%;
+  animation: ulm-pulse 1.8s ease-out infinite;
+}
+@keyframes ulm-pulse {
+  0%   { width: 16px; height: 16px; opacity: 0.7; }
+  100% { width: 56px; height: 56px; opacity: 0; }
+}
 .search-popup-close {
   background: none;
   border: none;
