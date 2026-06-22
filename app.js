@@ -1320,11 +1320,23 @@ function initSearchToggle() {
   const closeBtn = document.getElementById("btn-close-search");
   if (!btn || !section) return;
 
+  // 원래 위치 복원용 앵커 (삼성 인터넷 등에서 overflow 부모 안의 position:fixed가
+  // 터치 이벤트를 못 받는 버그 때문에, 열 때 body 최상위로 이동시킴)
+  const anchor = document.createComment("search-section-anchor");
+  section.parentNode.insertBefore(anchor, section);
+
   function setOpen(open) {
+    if (open) {
+      document.body.appendChild(section);
+      if (backdrop) document.body.appendChild(backdrop);
+    }
     section.classList.toggle("open", open);
     btn.classList.toggle("active", open);
     if (backdrop) backdrop.classList.toggle("open", open);
     btn.textContent = open ? "🔍 검색 닫기" : "🔍 논알콜 판매 가게 검색";
+    if (!open && anchor.parentNode) {
+      anchor.parentNode.insertBefore(section, anchor); // 원래 위치로 복원
+    }
   }
 
   btn.addEventListener("click", () => {
