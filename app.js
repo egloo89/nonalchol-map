@@ -59,6 +59,36 @@ const BRAND_ICONS = {
   "기타": "➕",
 };
 
+// 브랜드별 태그 배경·글자·테두리 색상
+const BRAND_COLORS = {
+  "논알콜 맥주 (종류 무관)":      { bg: "#fef3c7", color: "#92400e", border: "#fcd34d" },
+  "논알콜 칵테일 (종류 무관)":    { bg: "#f3e8ff", color: "#6b21a8", border: "#d8b4fe" },
+  "논알콜 와인 (종류 무관)":      { bg: "#fce7f3", color: "#9d174d", border: "#f9a8d4" },
+  "카스 제로 (0.0)":              { bg: "#dbeafe", color: "#1e40af", border: "#93c5fd" },
+  "하이네켄 제로 (0.0)":          { bg: "#dcfce7", color: "#166534", border: "#86efac" },
+  "하이트 제로 (0.00)":           { bg: "#ffedd5", color: "#9a3412", border: "#fdba74" },
+  "클라우드 클리어 제로":          { bg: "#fef9c3", color: "#854d0e", border: "#fde047" },
+  "버드와이저 제로":               { bg: "#fee2e2", color: "#991b1b", border: "#fca5a5" },
+  "칼스버그 0.0":                  { bg: "#ede9fe", color: "#5b21b6", border: "#c4b5fd" },
+  "코로나 선플로우 (Sunbrew)":     { bg: "#fef3c7", color: "#78350f", border: "#fbbf24" },
+  "에르딩거 알코올프리":           { bg: "#f1f5f9", color: "#475569", border: "#cbd5e1" },
+  "파울라너 알코올프리":           { bg: "#e0f2fe", color: "#075985", border: "#7dd3fc" },
+  "바이엔슈테판 알코올프리":       { bg: "#f0fdf4", color: "#14532d", border: "#6ee7b7" },
+  "칭따오 논알콜":                 { bg: "#ecfeff", color: "#164e63", border: "#67e8f9" },
+  "아사히 드라이 제로":            { bg: "#fff7ed", color: "#c2410c", border: "#fb923c" },
+  "산 미구엘 0.0":                 { bg: "#f0fdfa", color: "#134e4a", border: "#5eead4" },
+  "레페 브뤼 논알콜":              { bg: "#fdf2f8", color: "#831843", border: "#f0abfc" },
+  "기타":                          { bg: "#f8fafc", color: "#64748b", border: "#e2e8f0" },
+};
+
+function brandTagHtml(brand) {
+  const c = BRAND_COLORS[brand];
+  const style = c
+    ? `style="background:${c.bg};color:${c.color};border-color:${c.border}"`
+    : "";
+  return `<span class="brand-tag" ${style}>${escapeHtml(brand)}</span>`;
+}
+
 function initFirebase() {
   if (window.db) return true; // 이미 초기화됨 (중복 호출 방지)
   if (!window.firebase) {
@@ -656,9 +686,7 @@ function renderMarkers(filtered) {
 }
 
 function buildInfoWindowContent(place) {
-  const brandsHtml = (place.brands || [])
-    .map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`)
-    .join("");
+  const brandsHtml = (place.brands || []).map(brandTagHtml).join("");
 
   const naverUrl = "https://map.naver.com/p/search/" + encodeURIComponent(place.name || "");
 
@@ -704,7 +732,7 @@ function renderSidebar(list) {
         <div class="name">${escapeHtml(p.name)}</div>
         <div class="address">📍 ${escapeHtml(p.address)}</div>
         <div class="brands">
-          ${(p.brands || []).map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`).join("")}
+          ${(p.brands || []).map(brandTagHtml).join("")}
         </div>
         ${cleanDescription(p.description) ? `<div class="meta">${escapeHtml(cleanDescription(p.description).slice(0, 60))}${cleanDescription(p.description).length > 60 ? "..." : ""}</div>` : ""}
       </div>
