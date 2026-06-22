@@ -119,6 +119,40 @@ body {
 
 #btn-report-place:hover { background: #059669; }
 
+#btn-shop-link {
+  background: #ff5722;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+#btn-shop-link:hover { background: #e64a19; }
+
+/* 모바일 전용 논알콜 구입 버튼 */
+.btn-shop-mobile {
+  display: none;
+  width: 100%;
+  background: #ff5722;
+  color: white;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+}
+.btn-shop-mobile:hover { background: #e64a19; }
+.btn-shop-mobile:active { transform: scale(0.98); }
+
 /* 모바일 전용 가게 제보 버튼 (검색창 위, 가로 전체) */
 .btn-report-mobile {
   display: none;
@@ -1209,7 +1243,9 @@ body {
   #btn-add-place { display: none; }
   /* 헤더 제보 버튼 숨기고, 검색창 위 가로형 버튼 사용 */
   #btn-report-place { display: none; }
+  #btn-shop-link { display: none; }
   .btn-report-mobile { display: block; }
+  .btn-shop-mobile { display: block; }
 
   .btn-login { padding: 5px 10px; font-size: 12px; }
   .btn-logout { padding: 5px 8px; font-size: 12px; }

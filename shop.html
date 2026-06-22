@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>논알콜 음료 구입 | 논알콜맵</title>
+  <meta name="description" content="논알콜 맥주·와인·사와 추천 모음. 쿠팡에서 바로 구매하세요." />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="theme-color" content="#2563eb" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="논알콜 음료 구입 | 논알콜맵" />
+  <meta property="og:description" content="논알콜 맥주·와인·사와 추천 모음. 쿠팡에서 바로 구매하세요." />
+  <meta property="og:image" content="https://nonalchol-map.vercel.app/icon-512.png" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    :root {
+      --primary: #2563eb;
+      --accent: #16a34a;
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --coupang: #ff5722;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Pretendard", -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 60px; }
+
+    /* ── 헤더 ── */
+    header {
+      text-align: center;
+      padding: 28px 16px 22px;
+      background: linear-gradient(135deg, #2563eb 0%, #16a34a 100%);
+      color: #fff;
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 20px;
+    }
+    header .logo {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      margin: 0 auto 12px;
+      display: block;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    header p { font-size: 13.5px; opacity: 0.92; }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 14px;
+      background: rgba(255,255,255,0.18);
+      color: #fff; text-decoration: none;
+      padding: 8px 16px; border-radius: 999px;
+      font-size: 13px; font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+    .back-link:active { transform: scale(0.97); }
+
+    /* ── 카테고리 ── */
+    .cat { margin-bottom: 28px; }
+    .cat-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 17px; font-weight: 800;
+      margin: 0 4px 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+    .cat-title .emoji { font-size: 20px; }
+    .cat-title .count {
+      margin-left: auto;
+      font-size: 12px; font-weight: 600;
+      color: var(--muted);
+      background: #eef2ff;
+      padding: 2px 9px; border-radius: 999px;
+    }
+
+    /* ── 상품 카드 ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .product {
+      display: flex; flex-direction: column;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .product:active { transform: scale(0.98); }
+    @media (hover: hover) {
+      .product:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    }
+    .product .thumb {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: linear-gradient(135deg, #eef2ff, #e0f2f1);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .product .thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .product .thumb .ph { font-size: 46px; opacity: 0.55; }
+    .product .num {
+      position: absolute; top: 8px; left: 8px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px; font-weight: 800;
+      min-width: 24px; height: 24px;
+      border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 7px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    .product .body {
+      flex: 1;
+      display: flex; flex-direction: column;
+      padding: 10px 11px 12px;
+    }
+    .product .name {
+      font-size: 13px; font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 35px;
+    }
+    .product .buy {
+      margin-top: auto;
+      text-align: center;
+      background: var(--coupang);
+      color: #fff;
+      font-size: 12.5px; font-weight: 700;
+      padding: 8px 6px;
+      border-radius: 9px;
+    }
+
+    /* ── 면책 고지 ── */
+    .disclosure {
+      margin-top: 8px;
+      background: #fff8e1;
+      border: 1px solid #ffe0a3;
+      color: #8a6d3b;
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 13px 15px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    @media (min-width: 560px) {
+      .grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icon-512.png" alt="논알콜맵" class="logo" />
+    <h1>🛒 논알콜 음료 구입</h1>
+    <p>엄선한 논알콜 맥주·와인·사와를 쿠팡에서 바로 구매하세요</p>
+    <a href="index.html" class="back-link">← 지도로 돌아가기</a>
+  </header>
+
+  <div class="wrap">
+    <div id="shop-list"></div>
+
+    <div class="disclosure">
+      이 페이지는 쿠팡 파트너스 활동의 일환으로,<br>
+      이에 따른 일정액의 수수료를 제공받습니다.
+    </div>
+  </div>
+
+  <script>
+    // =====================================================
+    // 상품 데이터
+    // img: 쿠팡 상품 페이지에서 이미지 우클릭 → "이미지 주소 복사" 후 붙여넣으면
+    //      해당 이미지가 표시됩니다. 비워두면 이모지 썸네일로 표시됩니다.
+    // =====================================================
+    const SHOP = [
+      {
+        title: "인기 추천",
+        emoji: "⭐",
+        items: [
+          { name: "카스 올제로 (0.00)", url: "https://link.coupang.com/a/eMGsoYScou", img: "" },
+          { name: "카스 레몬 스퀴즈 제로 (0.0)", url: "https://link.coupang.com/a/eMGrjiidxc", img: "" },
+        ],
+      },
+      {
+        title: "논알콜 맥주",
+        emoji: "🍺",
+        items: [
+          { name: "카스 올제로 (0.00) 330ml 20개", url: "https://link.coupang.com/a/eMJbVk0Io1", img: "" },
+          { name: "카스 레몬 스퀴즈 제로 473ml 20개", url: "https://link.coupang.com/a/eMI85Bz6Y0", img: "" },
+          { name: "하이네켄 제로 (0.0)", url: "https://link.coupang.com/a/eMGOo38Hts", img: "" },
+          { name: "Athletic 논알콜 비어 (런 와일드)", url: "https://link.coupang.com/a/eMGLwdqLa8", img: "" },
+          { name: "Athletic 논알콜 비어 (업사이드다운)", url: "https://link.coupang.com/a/eMGEqXIFTE", img: "" },
+        ],
+      },
+      {
+        title: "논알콜 사와",
+        emoji: "🍋",
+        items: [
+          { name: "산토리 논알콜 레몬사와 플러스 (일본)", url: "https://link.coupang.com/a/eMGJUITbbg", img: "" },
+          { name: "아사히 스타일 밸런스 논알콜 사워 7종 세트", url: "https://link.coupang.com/a/eMGyuHilFc", img: "" },
+        ],
+      },
+      {
+        title: "논알콜 와인",
+        emoji: "🍷",
+        items: [
+          { name: "여왕의 논아르 화이트 (샤르도네)", url: "https://link.coupang.com/a/eMGvWnIcCW", img: "" },
+          { name: "산토리 논알콜 스파클링 와인의 휴일 레드", url: "https://link.coupang.com/a/eMHCykuJuC", img: "" },
+          { name: "산토리 논알콜 스파클링 휴일 레드 (24개입)", url: "https://link.coupang.com/a/eMHSxQ2aVo", img: "" },
+          { name: "어터너티바 0.0 무알콜 드라이 스파클링 로제", url: "https://link.coupang.com/a/eMG2VrtGZo", img: "" },
+          { name: "도넬리 스카글리에티 무알콜 스파클링 비앙코", url: "https://link.coupang.com/a/eMG5M9kaC4", img: "" },
+          { name: "오비티스카운트 무알콜 스파클링 포도주스 레드", url: "https://link.coupang.com/a/eMHdPwAk6C", img: "" },
+          { name: "벤돔 페틸런트 유기농 스파클링 와인 클래식", url: "https://link.coupang.com/a/eMIbZHjv1U", img: "" },
+          { name: "샤르도네 스파클링 논알콜 와인", url: "https://link.coupang.com/a/eMHFQxkkSq", img: "" },
+          { name: "게르슈타커 크리스트킨들스 글뤼펀쉬 뱅쇼", url: "https://link.coupang.com/a/eMH5bVgqn6", img: "" },
+        ],
+      },
+      {
+        title: "임산부도 마실 수 있는 와인",
+        emoji: "🤰",
+        items: [
+          { name: "리피즈 이츠리치 무알콜 칵테일 (20잔)", url: "https://link.coupang.com/a/eMIUGUFMiq", img: "" },
+          { name: "논 있는 술집 레드 와인 스파클링 24캔", url: "https://link.coupang.com/a/eMIMfl1iG4", img: "" },
+          { name: "르뱅 샤르도네 프랑스 무알콜 화이트", url: "https://link.coupang.com/a/eMHn8U9Jfg", img: "" },
+          { name: "르뱅 피노누아 프랑스 무알콜 레드", url: "https://link.coupang.com/a/eMG8thFMQK", img: "" },
+          { name: "제라 샤르도네 스파클링 프랑스 무알콜 샴페인", url: "https://link.coupang.com/a/eMHibg0xJk", img: "" },
+          { name: "르뱅 블랑 드 블랑 프랑스 무알콜 스파클링", url: "https://link.coupang.com/a/eMHI5fPt48", img: "" },
+          { name: "디아망떼 제로 레드 이탈리아 무알콜", url: "https://link.coupang.com/a/eMHi6H7JLg", img: "" },
+          { name: "구스타프호프 트라우벤사푸트 레드 유기농", url: "https://link.coupang.com/a/eMHqCFlcMT", img: "" },
+          { name: "구스타프호프 트라우벤사푸트 화이트 유기농", url: "https://link.coupang.com/a/eMHMuASLWm", img: "" },
+          { name: "애플리티프 애플 아로니아&로즈 스파클링", url: "https://link.coupang.com/a/eMHQnbXypw", img: "" },
+          { name: "하이세븐 무알콜 샴페인맛", url: "https://link.coupang.com/a/eMHYvT1H1E", img: "" },
+          { name: "알랭밀리아 샤르도네 화이트", url: "https://link.coupang.com/a/eMIgVS6uaG", img: "" },
+          { name: "반나멘 유기농 리즐링 화이트", url: "https://link.coupang.com/a/eMImZTL0uq", img: "" },
+          { name: "쁘아뽐 스파클링 화이트", url: "https://link.coupang.com/a/eMIuLbNroG", img: "" },
+          { name: "제주사월 뱅쇼 선물세트 2종 무알콜 와인", url: "https://link.coupang.com/a/eMIHo2obJs", img: "" },
+          { name: "뱅쇼 무알콜 와인 샹그리아 글뤼바인 파티용", url: "https://link.coupang.com/a/eMIkxDXUMS", img: "" },
+        ],
+      },
+    ];
+
+    const PLACEHOLDER = { "🍺": "🍺", "🍷": "🍷", "🍋": "🍋", "⭐": "🍾", "🤰": "🍇" };
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function render() {
+      let n = 0;
+      const html = SHOP.map((cat) => {
+        const cards = cat.items.map((p) => {
+          n += 1;
+          const thumb = p.img
+            ? `<img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.name)}" loading="lazy" />`
+            : `<span class="ph">${PLACEHOLDER[cat.emoji] || "🥤"}</span>`;
+          return `
+            <a class="product" href="${escapeHtml(p.url)}" target="_blank" rel="noopener sponsored">
+              <div class="thumb">
+                <span class="num">${n}</span>
+                ${thumb}
+              </div>
+              <div class="body">
+                <div class="name">${escapeHtml(p.name)}</div>
+                <div class="buy">쿠팡에서 구매 →</div>
+              </div>
+            </a>`;
+        }).join("");
+        return `
+          <section class="cat">
+            <div class="cat-title">
+              <span class="emoji">${cat.emoji}</span>
+              <span>${escapeHtml(cat.title)}</span>
+              <span class="count">${cat.items.length}개</span>
+            </div>
+            <div class="grid">${cards}</div>
+          </section>`;
+      }).join("");
+      document.getElementById("shop-list").innerHTML = html;
+    }
+
+    render();
+  </script>
+</body>
+</html>
