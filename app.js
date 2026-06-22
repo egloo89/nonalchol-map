@@ -1451,26 +1451,26 @@ function initMobileTopbar() {
   // 제보 pill
   document.getElementById("mobile-report-pill")?.addEventListener("click", openReportModal);
 
-  // 시크릿 pill
-  const secretPill = document.getElementById("mobile-secret-pill");
+  // 시크릿 pill (모바일) + PC 버튼
   const secretOverlay = document.getElementById("secret-modal-overlay");
   const secretClose = document.getElementById("secret-modal-close");
-  if (secretPill && secretOverlay) {
-    secretPill.addEventListener("click", () => {
-      secretOverlay.classList.add("active");
-      document.body.style.overflow = "hidden";
-    });
-    secretClose?.addEventListener("click", () => {
+  function openSecretModal() {
+    if (!secretOverlay) return;
+    secretOverlay.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+  document.getElementById("mobile-secret-pill")?.addEventListener("click", openSecretModal);
+  document.getElementById("btn-secret-pc")?.addEventListener("click", openSecretModal);
+  secretClose?.addEventListener("click", () => {
+    secretOverlay.classList.remove("active");
+    document.body.style.overflow = "";
+  });
+  secretOverlay?.addEventListener("click", (e) => {
+    if (e.target === secretOverlay) {
       secretOverlay.classList.remove("active");
       document.body.style.overflow = "";
-    });
-    secretOverlay.addEventListener("click", (e) => {
-      if (e.target === secretOverlay) {
-        secretOverlay.classList.remove("active");
-        document.body.style.overflow = "";
-      }
-    });
-  }
+    }
+  });
 
   // 현재 위치 파란 원 표시
   window.showUserLocation = function (latlng) {

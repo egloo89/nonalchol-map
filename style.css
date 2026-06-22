@@ -108,6 +108,20 @@ body {
 
 #btn-report-place:hover { background: #059669; }
 
+#btn-secret-pc {
+  background: #f3f4f6;
+  color: #444;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+#btn-secret-pc:hover { background: #e5e7eb; }
+
 #btn-shop-link {
   background: #ff5722;
   color: white;
