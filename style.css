@@ -1666,6 +1666,13 @@ body {
 }
 .secret-support p { margin: 0 0 6px; }
 .secret-support p:last-child { margin: 0; }
+.secret-support-title {
+  text-align: center;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 10px !important;
+  line-height: 1.5;
+}
 .secret-support a { color: #2563eb; text-decoration: none; }
 .secret-sign {
   text-align: center;
