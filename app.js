@@ -667,7 +667,7 @@ function buildInfoWindowContent(place) {
       <div class="iw-name">${escapeHtml(place.name)}</div>
       <div class="iw-address">📍 ${escapeHtml(place.address)}</div>
       ${brandsHtml ? `<div class="iw-brands">${brandsHtml}</div>` : ""}
-      ${place.description ? `<div class="iw-desc">${escapeHtml(place.description)}</div>` : ""}
+      ${cleanDescription(place.description) ? `<div class="iw-desc">${escapeHtml(cleanDescription(place.description))}</div>` : ""}
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
       ${place.hours ? `<div class="iw-meta">🕐 ${escapeHtml(place.hours)}</div>` : ""}
       <a href="${naverUrl}" target="_blank" rel="noopener" class="btn-naver-map">네이버맵 바로가기</a>
@@ -706,7 +706,7 @@ function renderSidebar(list) {
         <div class="brands">
           ${(p.brands || []).map((b) => `<span class="brand-tag">${escapeHtml(b)}</span>`).join("")}
         </div>
-        ${p.description ? `<div class="meta">${escapeHtml(p.description.slice(0, 60))}${p.description.length > 60 ? "..." : ""}</div>` : ""}
+        ${cleanDescription(p.description) ? `<div class="meta">${escapeHtml(cleanDescription(p.description).slice(0, 60))}${cleanDescription(p.description).length > 60 ? "..." : ""}</div>` : ""}
       </div>
     `)
     .join("");
@@ -1300,6 +1300,16 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+// 설명에서 출처 표기(soberwave·블로그·공식 확인 등) 제거 - 화면에 노출하지 않음
+function cleanDescription(str) {
+  if (!str) return "";
+  return str
+    // 괄호 안에 출처 키워드(확인/출처/soberwave/블로그/공식/네이버)가 들어간 부분 제거
+    .replace(/[\(（][^)）]*(확인|출처|soberwave|블로그|공식|네이버)[^)）]*[\)）]/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 // ─── 앱 시작 ───────────────────────────────────────
