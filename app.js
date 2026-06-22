@@ -1316,10 +1316,20 @@ window.onload = function () {
 function initSearchToggle() {
   const btn = document.getElementById("btn-toggle-search");
   const section = document.getElementById("search-section");
+  const backdrop = document.getElementById("search-backdrop");
+  const closeBtn = document.getElementById("btn-close-search");
   if (!btn || !section) return;
-  btn.addEventListener("click", () => {
-    const open = section.classList.toggle("open");
+
+  function setOpen(open) {
+    section.classList.toggle("open", open);
     btn.classList.toggle("active", open);
+    if (backdrop) backdrop.classList.toggle("open", open);
     btn.textContent = open ? "🔍 검색 닫기" : "🔍 논알콜 판매 가게 검색";
+  }
+
+  btn.addEventListener("click", () => {
+    setOpen(!section.classList.contains("open"));
   });
+  if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
+  if (backdrop) backdrop.addEventListener("click", () => setOpen(false));
 }

@@ -87,19 +87,8 @@ body {
 }
 
 #btn-add-place {
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: background 0.15s;
-  white-space: nowrap;
+  /* 가게 추가 버튼은 숨김 - 가게 제보로 대체 */
+  display: none !important;
 }
 
 #btn-add-place:hover { background: var(--primary-dark); }
@@ -188,6 +177,28 @@ body {
 }
 .btn-search-toggle.active { background: white; color: var(--primary); }
 .btn-search-toggle:active { transform: scale(0.98); }
+
+/* 검색 팝업 헤더 (모바일 팝업에서만 표시) */
+.search-popup-head { display: none; }
+.search-popup-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* 검색 팝업 배경 (모바일) */
+#search-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+#search-backdrop.open { display: block; }
 
 /* ─── NON 마커 ─── */
 .non-marker {
@@ -1301,9 +1312,43 @@ body {
   /* 검색 토글 버튼 표시, 마지막 버튼 여백 정리 */
   .btn-search-toggle { display: block; margin-bottom: 10px; }
 
-  /* 검색/필터 섹션: 기본 숨김 → 버튼 누르면 표시 */
+  /* 검색/필터 섹션: 기본 숨김 → 버튼 누르면 큰 팝업 창으로 표시 */
   .search-section { display: none; }
-  .search-section.open { display: block; }
+  .search-section.open {
+    display: block;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 92%;
+    max-width: 440px;
+    max-height: 82vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+    z-index: 1000;
+    padding-bottom: 8px;
+  }
+
+  /* 팝업 헤더: 상단 고정 */
+  .search-section.open .search-popup-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: white;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+    z-index: 2;
+  }
+
   .search-section #search-input {
     width: calc(100% - 24px);
     margin: 0 12px 12px;

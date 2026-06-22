@@ -102,6 +102,10 @@
       <button id="btn-toggle-search" class="btn-search-toggle">🔍 논알콜 판매 가게 검색</button>
     </div>
     <div id="search-section" class="search-section">
+      <div class="search-popup-head">
+        <span>🔍 논알콜 판매 가게 검색</span>
+        <button type="button" id="btn-close-search" class="search-popup-close" aria-label="닫기">✕</button>
+      </div>
       <div id="abv-guide">
         <span class="abv-item"><b>0.00%</b> 완전 무알콜</span>
         <span class="abv-divider">·</span>
@@ -122,6 +126,9 @@
       </div>
     </div>
   </aside>
+
+  <!-- 검색 팝업 배경 (모바일) -->
+  <div id="search-backdrop"></div>
 
   <!-- 지도 -->
   <div id="map-container">
