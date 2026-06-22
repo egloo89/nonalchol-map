@@ -1451,6 +1451,27 @@ function initMobileTopbar() {
   // 제보 pill
   document.getElementById("mobile-report-pill")?.addEventListener("click", openReportModal);
 
+  // 시크릿 pill
+  const secretPill = document.getElementById("mobile-secret-pill");
+  const secretOverlay = document.getElementById("secret-modal-overlay");
+  const secretClose = document.getElementById("secret-modal-close");
+  if (secretPill && secretOverlay) {
+    secretPill.addEventListener("click", () => {
+      secretOverlay.classList.add("active");
+      document.body.style.overflow = "hidden";
+    });
+    secretClose?.addEventListener("click", () => {
+      secretOverlay.classList.remove("active");
+      document.body.style.overflow = "";
+    });
+    secretOverlay.addEventListener("click", (e) => {
+      if (e.target === secretOverlay) {
+        secretOverlay.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+    });
+  }
+
   // 현재 위치 파란 원 표시
   window.showUserLocation = function (latlng) {
     if (userLocationOverlay) userLocationOverlay.setMap(null);

@@ -160,8 +160,8 @@
     <!-- 모바일 전용: 지도 위 pill 버튼 -->
     <div id="mobile-map-pills">
       <a href="shop.html" class="map-pill">🛒 논알콜 구입</a>
-      <button id="mobile-report-pill" type="button" class="map-pill">📢 제보</button>
-      <button id="mobile-filter-pill" type="button" class="map-pill">🔍 가게 검색</button>
+      <button id="mobile-report-pill" type="button" class="map-pill">📢 가게제보</button>
+      <button id="mobile-secret-pill" type="button" class="map-pill">🤫 시크릿</button>
     </div>
 
     <!-- 현재 위치 버튼 -->
@@ -303,6 +303,31 @@
       </div>
     </form>
 
+  </div>
+</div>
+
+<!-- ─── 시크릿 (개발자 소개) 모달 ─── -->
+<div id="secret-modal-overlay" class="modal-overlay" style="display:none;">
+  <div class="modal secret-modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h2>🤫 시크릿</h2>
+      <button class="modal-close" id="secret-modal-close" aria-label="닫기">✕</button>
+    </div>
+    <div class="secret-modal-body">
+      <img src="dev-photo.jpg" alt="개발자 반려견" class="secret-dog-photo" />
+      <div class="secret-message">
+        <p>"한달 30일중에 20일 넘게 술에 빠져서<br>이런 눈으로 살았던 제가 정말 변할 수 있을까?"</p>
+        <p>하는 마음으로 개발한 논알콜맵입니다.</p>
+        <p>사업/업무상 완전 금주는 힘들지만 절주 하고 싶은 분들,<br>논알콜도 같이 파는 가게가 어디인지 몰라서 답답했던 분들</p>
+        <p>저처럼 금주 혹은 절주 하고 싶은 분들이<br>성공적으로 금주/절주 할 수 있도록<br>돕고 싶었습니다.</p>
+        <p>논알콜맵을 통해 논알콜 시장이 활성화되어<br>더 다양한 논알콜 제품들과 판매처들이 늘어나길 바랍니다.</p>
+        <p>작은 응원이 큰 힘이 됩니다 🙏<br>커피 한 잔 값의 후원도 감사히 받겠습니다.</p>
+        <div class="secret-support">
+          <p>💳 <strong>하나은행</strong> 415-910260-48807 박건휘</p>
+          <p>✉️ <a href="mailto:nonalcholmap@gmail.com">nonalcholmap@gmail.com</a></p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 

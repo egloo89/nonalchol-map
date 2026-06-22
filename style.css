@@ -1601,3 +1601,83 @@ body {
     text-align: center;
   }
 }
+
+/* ─── 시크릿 모달 ─── */
+#secret-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+}
+#secret-modal-overlay.active {
+  display: flex !important;
+}
+.secret-modal {
+  max-width: 400px;
+  width: 92%;
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: #fff;
+}
+.secret-modal-body {
+  padding: 0 20px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.secret-dog-photo {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border: 3px solid #f0f0f0;
+}
+.secret-message {
+  width: 100%;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #333;
+  text-align: center;
+}
+.secret-message p {
+  margin: 0 0 12px;
+}
+.secret-message p:first-child {
+  font-style: italic;
+  color: #555;
+  background: #f9f9f9;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.secret-support {
+  margin-top: 8px;
+  background: #f0f7ff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  text-align: left;
+}
+.secret-support p { margin: 0 0 6px; }
+.secret-support p:last-child { margin: 0; }
+.secret-support a { color: #2563eb; text-decoration: none; }
+
+@media (max-width: 640px) {
+  .secret-modal {
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+  }
+  #secret-modal-overlay.active {
+    align-items: flex-end;
+  }
+}
