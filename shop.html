@@ -117,13 +117,12 @@
     }
     .product .thumb .ph { font-size: 46px; opacity: 0.55; }
 
-    /* 쿠팡 배너 이미지(세로형)를 쓰는 카드 */
-    .product.has-img .thumb {
-      aspect-ratio: 120 / 240;
-      background: #fff;
+    /* 쿠팡 배너 이미지: 상품 사진 부분만 보이도록 크롭 (로고/버튼 숨김) */
+    .product.has-img .thumb { background: #fff; }
+    .product.has-img .thumb img {
+      object-fit: cover;
+      object-position: center 30%;
     }
-    .product.has-img .thumb img { object-fit: contain; }
-    .product.has-img .body { display: none; }
     .product .num {
       position: absolute; top: 8px; left: 8px;
       background: var(--primary);
@@ -144,11 +143,8 @@
       font-size: 13px; font-weight: 600;
       line-height: 1.35;
       margin-bottom: 10px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-      min-height: 35px;
+      word-break: keep-all;
+      overflow-wrap: break-word;
     }
     .product .buy {
       margin-top: auto;
@@ -206,7 +202,7 @@
         title: "인기 추천",
         emoji: "⭐",
         items: [
-          { name: "카스 올제로 (0.00)", url: "https://link.coupang.com/a/eMGsoYScou", img: "" },
+          { name: "카스 올제로 (0.00)", url: "https://link.coupang.com/a/eMGsoYScou", img: "https://image15.coupangcdn.com/image/affiliate/banner/38e38d38aa23dfe47c14d9fdbde3f7b9@2x.jpg" },
           { name: "카스 레몬 스퀴즈 제로 (0.0)", url: "https://link.coupang.com/a/eMGrjiidxc", img: "" },
         ],
       },
