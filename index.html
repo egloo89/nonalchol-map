@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>논알콜 맥주 술집 지도</title>
+  <title>논알콜맵</title>
   <meta name="description" content="술을 줄이고 싶은 분들을 위한, 논알콜 맥주를 함께 파는 술집 모음 지도" />
 
   <!-- Open Graph (카카오톡, SNS 공유 미리보기) -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="논알콜 맥주 술집 지도" />
+  <meta property="og:title" content="논알콜맵" />
   <meta property="og:description" content="술을 줄이고 싶은 분들을 위한, 논알콜 맥주를 함께 파는 술집 모음 지도" />
   <meta property="og:image" content="https://nonalchol-map.vercel.app/icon-512.png" />
   <meta property="og:image:width" content="512" />
@@ -69,7 +69,7 @@
   <div class="logo">
     <div class="icon">NON</div>
     <div>
-      <div>논알콜 술집 지도</div>
+      <div>논알콜맵</div>
       <div class="subtitle">술 줄이기 프로젝트</div>
     </div>
   </div>
@@ -90,6 +90,24 @@
   <button id="btn-report-place">📢 가게 제보</button>
   <button id="btn-add-place">＋ 가게 추가</button>
 </header>
+
+<!-- ─── 모바일 전용: 상단 검색바 ─── -->
+<div id="mobile-topbar">
+  <div class="mobile-non-icon">NON</div>
+  <button id="mobile-search-pill" type="button" class="mobile-search-pill">🔍 논알콜 판매 가게 검색</button>
+  <div class="mobile-avatar-wrap">
+    <button id="mobile-avatar-btn" type="button" class="mobile-avatar-btn" aria-label="내 정보">
+      <img id="mobile-user-photo" alt="" />
+      <span id="mobile-avatar-icon">👤</span>
+    </button>
+    <div id="mobile-profile-menu">
+      <p id="mobile-user-name"></p>
+      <button id="mobile-btn-logout-dd" type="button">로그아웃</button>
+      <a id="mobile-btn-admin-dd" href="admin.html">관리자 페이지</a>
+      <button id="mobile-btn-login-dd" type="button">로그인</button>
+    </div>
+  </div>
+</div>
 
 <!-- ─── 본문 ─── -->
 <div id="app">
@@ -138,6 +156,27 @@
       <span>지도를 불러오는 중...</span>
     </div>
     <div id="map"></div>
+
+    <!-- 모바일 전용: 지도 위 pill 버튼 -->
+    <div id="mobile-map-pills">
+      <a href="shop.html" class="map-pill">🛒 구입</a>
+      <button id="mobile-report-pill" type="button" class="map-pill">📢 제보</button>
+      <button id="mobile-filter-pill" type="button" class="map-pill">🔍 가게 검색</button>
+    </div>
+
+    <!-- 현재 위치 버튼 -->
+    <button id="mobile-location-btn" type="button" title="현재 위치로 이동">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3.5"/>
+        <line x1="12" y1="2" x2="12" y2="6.5"/>
+        <line x1="12" y1="17.5" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6.5" y2="12"/>
+        <line x1="17.5" y1="12" x2="22" y2="12"/>
+      </svg>
+    </button>
+
+    <!-- 브랜드 라벨 -->
+    <div id="map-brand-label">논알콜맵</div>
   </div>
 
 </div>

@@ -353,6 +353,15 @@ function updateAuthUI(nickname, photoURL) {
   const loggedIn = document.getElementById("auth-logged-in");
   const nicknameEl = document.getElementById("user-nickname");
   const avatarEl = document.getElementById("user-avatar");
+
+  // 모바일 아바타 업데이트
+  const mobilePhoto = document.getElementById("mobile-user-photo");
+  const mobileIcon = document.getElementById("mobile-avatar-icon");
+  const mobileUserName = document.getElementById("mobile-user-name");
+  const mobileLogoutBtn = document.getElementById("mobile-btn-logout-dd");
+  const mobileLoginBtn = document.getElementById("mobile-btn-login-dd");
+  const mobileAdminLink = document.getElementById("mobile-btn-admin-dd");
+
   if (nickname) {
     loggedOut.style.display = "none";
     loggedIn.style.display = "flex";
@@ -367,9 +376,27 @@ function updateAuthUI(nickname, photoURL) {
         avatarEl.style.display = "none";
       }
     }
+    // 모바일 아바타
+    if (mobilePhoto && photoURL) {
+      mobilePhoto.src = photoURL;
+      mobilePhoto.onload = () => mobilePhoto.classList.add("loaded");
+      mobilePhoto.onerror = () => mobilePhoto.classList.remove("loaded");
+    }
+    if (mobileIcon) mobileIcon.style.display = mobilePhoto?.src ? "none" : "";
+    if (mobileUserName) mobileUserName.textContent = nickname;
+    if (mobileLogoutBtn) mobileLogoutBtn.style.display = "";
+    if (mobileLoginBtn) mobileLoginBtn.style.display = "none";
+    if (mobileAdminLink) mobileAdminLink.style.display = isAdminUser(currentUser) ? "" : "none";
   } else {
     loggedOut.style.display = "flex";
     loggedIn.style.display = "none";
+    // 모바일: 로그아웃 상태
+    if (mobilePhoto) { mobilePhoto.classList.remove("loaded"); mobilePhoto.removeAttribute("src"); }
+    if (mobileIcon) mobileIcon.style.display = "";
+    if (mobileUserName) mobileUserName.textContent = "";
+    if (mobileLogoutBtn) mobileLogoutBtn.style.display = "none";
+    if (mobileLoginBtn) mobileLoginBtn.style.display = "";
+    if (mobileAdminLink) mobileAdminLink.style.display = "none";
   }
   updateAdminLink();
 }
@@ -1344,9 +1371,10 @@ function cleanDescription(str) {
 
 window.onload = function () {
   initFirebase();
-  initBrandFilter(); // 지도 로드와 무관하게 필터는 항상 표시
+  initBrandFilter();
   initReportModal();
   initSearchToggle();
+  initMobileTopbar();
   // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };
 
@@ -1357,7 +1385,10 @@ function initSearchToggle() {
   const backdrop = document.getElementById("search-backdrop");
   const closeBtn = document.getElementById("btn-close-search");
   const doSearchBtn = document.getElementById("btn-do-search");
-  if (!btn || !section) return;
+  // 모바일 상단바 검색 pill + 지도 위 검색 pill 모두 같은 팝업을 연다
+  const mobilePill = document.getElementById("mobile-search-pill");
+  const mobileFilterPill = document.getElementById("mobile-filter-pill");
+  if (!section) return;
 
   // 원래 위치 복원용 앵커 (삼성 인터넷 등에서 overflow 부모 안의 position:fixed가
   // 터치 이벤트를 못 받는 버그 때문에, 열 때 body 최상위로 이동시킴)
@@ -1370,24 +1401,67 @@ function initSearchToggle() {
       if (backdrop) document.body.appendChild(backdrop);
     }
     section.classList.toggle("open", open);
-    btn.classList.toggle("active", open);
+    if (btn) btn.classList.toggle("active", open);
     if (backdrop) backdrop.classList.toggle("open", open);
-    btn.textContent = open ? "🔍 검색 닫기" : "🔍 논알콜 판매 가게 검색";
+    if (btn) btn.textContent = open ? "🔍 검색 닫기" : "🔍 논알콜 판매 가게 검색";
     if (!open) {
       applyFilters(); // 팝업 닫힐 때 지도 마커 확정 반영
       if (anchor.parentNode) anchor.parentNode.insertBefore(section, anchor);
     }
   }
 
-  btn.addEventListener("click", () => {
-    setOpen(!section.classList.contains("open"));
-  });
+  if (btn) btn.addEventListener("click", () => setOpen(!section.classList.contains("open")));
+  if (mobilePill) mobilePill.addEventListener("click", () => setOpen(!section.classList.contains("open")));
+  if (mobileFilterPill) mobileFilterPill.addEventListener("click", () => setOpen(!section.classList.contains("open")));
   if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
   if (backdrop) backdrop.addEventListener("click", () => setOpen(false));
   if (doSearchBtn) doSearchBtn.addEventListener("click", () => {
-    // 검색어 확정 후 팝업 닫기
     const input = document.getElementById("search-input");
     if (input) currentSearch = input.value.trim().toLowerCase();
     setOpen(false);
+  });
+}
+
+// ─── 모바일 상단바: 프로필/로그인 드롭다운 + 현재 위치 ───
+function initMobileTopbar() {
+  // 프로필 드롭다운 토글
+  const avatarBtn = document.getElementById("mobile-avatar-btn");
+  const profileMenu = document.getElementById("mobile-profile-menu");
+  if (avatarBtn && profileMenu) {
+    avatarBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      profileMenu.classList.toggle("open");
+    });
+    document.addEventListener("click", () => profileMenu.classList.remove("open"));
+  }
+
+  // 로그아웃
+  document.getElementById("mobile-btn-logout-dd")?.addEventListener("click", () => {
+    profileMenu?.classList.remove("open");
+    logout();
+  });
+
+  // 로그인
+  document.getElementById("mobile-btn-login-dd")?.addEventListener("click", () => {
+    profileMenu?.classList.remove("open");
+    openAuthModal();
+  });
+
+  // 제보 pill
+  document.getElementById("mobile-report-pill")?.addEventListener("click", openReportModal);
+
+  // 현재 위치
+  document.getElementById("mobile-location-btn")?.addEventListener("click", () => {
+    if (!navigator.geolocation) { showToast("위치 정보를 지원하지 않는 브라우저입니다.", "error"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!map) return;
+        const latlng = new kakao.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+        map.setCenter(latlng);
+        map.setLevel(4);
+      },
+      () => showToast("위치 정보를 가져올 수 없습니다.", "error"),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
   });
 }

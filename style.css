@@ -181,6 +181,13 @@ body {
 /* 검색 팝업 헤더 + 검색하기 버튼 (모바일 팝업에서만 표시) */
 .search-popup-head { display: none; }
 .btn-do-search { display: none; }
+
+/* 모바일 전용 요소 기본 숨김 */
+#mobile-topbar { display: none; }
+#mobile-map-pills { display: none; }
+#mobile-location-btn { display: none; }
+#map-brand-label { display: none; }
+#mobile-profile-menu { display: none; }
 .search-popup-close {
   background: none;
   border: none;
@@ -1239,79 +1246,194 @@ body {
 
 /* ─── Responsive ─── */
 @media (max-width: 640px) {
-  /* ── 헤더 ── */
-  #header {
-    padding: 0 10px;
-    gap: 6px;
-    height: 52px;
+  /* ── 기존 헤더 숨기고 모바일 상단바 사용 ── */
+  #header { display: none; }
+  #auth-section, #btn-report-place, #btn-shop-link,
+  .btn-report-mobile, .btn-shop-mobile, .btn-search-toggle { display: none !important; }
+
+  /* ── 모바일 상단바 ── */
+  #mobile-topbar {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    background: white;
+    padding: 8px 10px;
+    gap: 8px;
+    align-items: center;
+    height: 54px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   }
 
-  #header .logo { gap: 6px; }
-  #header .logo > div > div:first-child { font-size: 14px; }
-  #header .subtitle { display: none; }
-  #header .spacer { min-width: 0; }
-  #header .count-badge { display: none; }
-  .btn-admin-link { display: none; }
-  #btn-add-place { display: none; }
-  /* 헤더 제보 버튼 숨기고, 검색창 위 가로형 버튼 사용 */
-  #btn-report-place { display: none; }
-  #btn-shop-link { display: none; }
-  .btn-report-mobile { display: block; }
-  .btn-shop-mobile { display: block; }
+  .mobile-non-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900; color: white;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
 
-  .btn-login { padding: 5px 10px; font-size: 12px; }
-  .btn-logout { padding: 5px 8px; font-size: 12px; }
-  #user-nickname { max-width: 56px; font-size: 11px; }
+  .mobile-search-pill {
+    flex: 1;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 24px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #9ca3af;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-avatar-wrap { position: relative; flex-shrink: 0; }
+
+  .mobile-avatar-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    background: #f3f4f6;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; padding: 0; overflow: hidden;
+    font-size: 17px;
+  }
+
+  .mobile-avatar-btn img {
+    width: 100%; height: 100%; object-fit: cover;
+    display: none;
+  }
+
+  .mobile-avatar-btn img.loaded { display: block; }
+  #mobile-avatar-icon { line-height: 1; }
+
+  /* 프로필 드롭다운 */
+  #mobile-profile-menu {
+    position: absolute;
+    top: calc(100% + 6px); right: 0;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    min-width: 160px;
+    padding: 8px 0;
+    z-index: 300;
+    overflow: hidden;
+  }
+  #mobile-profile-menu.open { display: block; }
+
+  #mobile-user-name {
+    padding: 10px 16px 10px;
+    font-size: 13px; font-weight: 600;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+  }
+  #mobile-profile-menu button,
+  #mobile-profile-menu a {
+    display: block; width: 100%;
+    padding: 11px 16px;
+    background: none; border: none;
+    text-align: left; font-size: 14px;
+    cursor: pointer; color: var(--text);
+    text-decoration: none;
+    font-family: inherit;
+  }
+  #mobile-profile-menu button:active,
+  #mobile-profile-menu a:active { background: #f3f4f6; }
+  #mobile-btn-admin-dd { display: none; }
 
   /* ── 앱 레이아웃 ── */
   #app {
     flex-direction: column;
-    padding-top: 52px;
-    height: 100vh;
-    height: 100dvh;
+    margin-top: 54px;
+    height: calc(100dvh - 54px);
+    height: calc(100vh - 54px);
+    padding-top: 0;
   }
 
-  /* 지도를 위로, 가게 제보/필터/목록 섹션을 지도 아래로 */
-  #map-container { height: 45vh; flex: none; order: 1; }
+  /* 지도 70% / 가게목록 30% */
+  #map-container { flex: 7; order: 1; }
+  #sidebar-header { display: none; }
 
-  /* ── 사이드바: 전체를 하나의 스크롤 영역으로 ── */
+  /* ── 사이드바 ── */
   #sidebar {
-    order: 2;
-    position: static;
-    width: 100%;
-    flex: 1;
+    order: 2; flex: 3;
+    position: static; width: 100%;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow-y: auto; overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     border-right: none;
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--border);
     box-shadow: none;
-    /* 검색창을 스크롤 시에도 상단에 고정 */
     display: block;
   }
 
-  /* place-list는 별도 스크롤 해제 (사이드바 전체가 스크롤) */
   #place-list {
-    overflow: visible;
-    min-height: unset;
-    height: auto;
-    flex: unset;
+    overflow: visible; min-height: unset;
+    height: auto; flex: unset;
   }
 
-  /* 제보/검색 버튼 고정 (스크롤해도 상단에 유지) */
-  #sidebar-header {
-    position: sticky;
-    top: 0;
-    background: var(--card-bg);
-    z-index: 20;
-    padding: 10px 12px 0;
-    border-bottom: 1px solid var(--border);
+  /* ── 지도 위 pill 버튼 ── */
+  #mobile-map-pills {
+    display: flex;
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    gap: 8px; z-index: 10;
+    pointer-events: none;
+  }
+  #mobile-map-pills * { pointer-events: all; }
+
+  .map-pill {
+    background: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--text);
+    text-decoration: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .map-pill:active { background: #f3f4f6; }
+
+  /* ── 현재 위치 버튼 ── */
+  #mobile-location-btn {
+    display: flex;
+    position: absolute;
+    bottom: 14px; right: 12px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    cursor: pointer;
+    align-items: center; justify-content: center;
+    z-index: 10; color: var(--primary);
   }
 
-  /* 검색 토글 버튼 표시, 마지막 버튼 여백 정리 */
-  .btn-search-toggle { display: block; margin-bottom: 10px; }
+  /* ── 브랜드 라벨 ── */
+  #map-brand-label {
+    display: block;
+    position: absolute;
+    bottom: 14px; left: 10px;
+    font-size: 11px; font-weight: 700;
+    color: rgba(0,0,0,0.45);
+    z-index: 10; pointer-events: none;
+    background: rgba(255,255,255,0.75);
+    padding: 3px 7px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  /* 검색 토글 버튼 표시 안함 (mobile-search-pill 사용) */
+  .btn-search-toggle { display: none; }
 
   /* 검색/필터 섹션: 기본 숨김 → 버튼 누르면 큰 팝업 창으로 표시 */
   .search-section { display: none; }
