@@ -76,7 +76,8 @@
       padding: 13px 16px;
       border-radius: 14px;
       background: linear-gradient(135deg, #2563eb 0%, #16a34a 100%);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
     }
     .cat-title .emoji { font-size: 21px; }
     .cat-title .count {
@@ -202,6 +203,7 @@
       {
         title: "인기 추천",
         emoji: "⭐",
+        grad: ["#f97316", "#ea580c"],
         items: [
           { name: "카스 올제로 (0.00) 330ml 20개", url: "https://link.coupang.com/a/eMGsoYScou", img: "https://image15.coupangcdn.com/image/affiliate/banner/38e38d38aa23dfe47c14d9fdbde3f7b9@2x.jpg" },
           { name: "카스 레몬 스퀴즈 제로 (0.0) 473ml 20개", url: "https://link.coupang.com/a/eMGrjiidxc", img: "https://img4a.coupangcdn.com/image/affiliate/banner/ded9052f366fa6693d32927df029f532@2x.jpg" },
@@ -210,6 +212,7 @@
       {
         title: "논알콜 맥주",
         emoji: "🍺",
+        grad: ["#ca8a04", "#a16207"],
         items: [
           { name: "카스 올제로 (0.00) 330ml 20개", url: "https://link.coupang.com/a/eMKlkh12OW", img: "https://image15.coupangcdn.com/image/affiliate/banner/38e38d38aa23dfe47c14d9fdbde3f7b9@2x.jpg" },
           { name: "카스 레몬 스퀴즈 제로 473ml 20개", url: "https://link.coupang.com/a/eMKustxmFw", img: "https://img4a.coupangcdn.com/image/affiliate/banner/ded9052f366fa6693d32927df029f532@2x.jpg" },
@@ -221,6 +224,7 @@
       {
         title: "논알콜 사와",
         emoji: "🍋",
+        grad: ["#65a30d", "#4d7c0f"],
         items: [
           { name: "산토리 논알콜 레몬사와 플러스 (일본) 350ml 24개", url: "https://link.coupang.com/a/eMK0hJaNHw", img: "https://image12.coupangcdn.com/image/affiliate/banner/6fee5252c61d69d04a313dd5483fecab@2x.jpg" },
           { name: "아사히 스타일 밸런스 논알콜 사워 7종 세트 350ml 20개", url: "https://link.coupang.com/a/eMKXoI5564", img: "https://img4a.coupangcdn.com/image/affiliate/banner/2d9356a79d03eecb905a5d8dfc1c810d@2x.jpg" },
@@ -229,6 +233,7 @@
       {
         title: "논알콜 와인",
         emoji: "🍷",
+        grad: ["#be123c", "#881337"],
         items: [
           { name: "여왕의 논아르 화이트 (샤르도네) 350ml 4개", url: "https://link.coupang.com/a/eMK21ge2iy", img: "https://img3c.coupangcdn.com/image/affiliate/banner/1e7b3888df0a7628f8f9eee514d78cae@2x.jpg" },
           { name: "산토리 논알콜 스파클링 와인의 휴일 레드 350ml", url: "https://link.coupang.com/a/eMK6fmjlgi", img: "https://image3.coupangcdn.com/image/affiliate/banner/bd3f2d9799ad3cba53e5e45a72f2716e@2x.jpg" },
@@ -247,6 +252,7 @@
       {
         title: "임산부도 마실 수 있는 와인",
         emoji: "🤰",
+        grad: ["#14b8a6", "#0f766e"],
         items: [
           { name: "리피즈 이츠리치 무알콜 칵테일 (20잔) 1.1L", url: "https://link.coupang.com/a/eMLwvLOI56", img: "https://img2c.coupangcdn.com/image/affiliate/banner/b66e8c1deea9078eccb0f42c0778dc8f@2x.jpg" },
           { name: "논 있는 술집 레드 와인 스파클링 350ml 24병", url: "https://link.coupang.com/a/eMLyo4YCXc", img: "https://image1.coupangcdn.com/image/affiliate/banner/c68b1fd2a127f423fbe5aa88342d411f@2x.jpg" },
@@ -303,9 +309,12 @@
               </div>
             </a>`;
         }).join("");
+        const grad = cat.grad
+          ? `background: linear-gradient(135deg, ${cat.grad[0]} 0%, ${cat.grad[1]} 100%);`
+          : "";
         return `
           <section class="cat">
-            <div class="cat-title">
+            <div class="cat-title" style="${grad}">
               <span class="emoji">${cat.emoji}</span>
               <span>${escapeHtml(cat.title)}</span>
               <span class="count">${cat.items.length}개</span>
