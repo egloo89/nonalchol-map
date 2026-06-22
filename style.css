@@ -1668,9 +1668,10 @@ body {
 .secret-support p:last-child { margin: 0; }
 .secret-support a { color: #2563eb; text-decoration: none; }
 .secret-sign {
-  text-align: right;
+  text-align: center;
   font-weight: 700;
   color: #444;
+  margin-bottom: 32px;
 }
 .secret-call {
   margin-top: 14px;
