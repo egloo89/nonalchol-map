@@ -146,6 +146,7 @@
     <div class="tabs">
       <button class="tab active" id="tab-places">등록된 가게</button>
       <button class="tab" id="tab-reports">제보 대기 <span class="badge" id="report-badge" style="display:none">0</span></button>
+      <button class="tab" id="tab-bulk">＋ 대량 추가</button>
     </div>
 
     <div id="loading">데이터를 불러오는 중...</div>
@@ -168,6 +169,28 @@
         </thead>
         <tbody id="places-tbody"></tbody>
       </table>
+    </section>
+
+    <section id="section-bulk" style="display:none">
+      <div style="background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;max-width:760px">
+        <h2 style="font-size:16px;font-weight:700;margin-bottom:6px">NON 가게 대량 추가</h2>
+        <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px">
+          한 줄에 한 가게씩 입력하세요. 형식은 <b>구분자 <code>|</code></b> 사용:<br>
+          <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">가게명 | 주소 | 종류 | 설명(선택)</code><br>
+          · <b>종류</b>는 쉼표로 여러 개: <code>맥주</code>, <code>칵테일</code>, <code>와인</code> 또는 정확한 브랜드명<br>
+          · 주소는 카카오 지도로 자동 좌표 변환됩니다. (도로명/지번 주소 권장)
+        </p>
+        <pre style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;color:var(--muted);margin-bottom:12px;white-space:pre-wrap">예시)
+무알콜바 ABC | 서울 마포구 양화로 100 | 맥주,칵테일 | 논알콜 칵테일 다양
+○○펍 | 서울 강남구 테헤란로 5 | 와인 | 논알콜 와인 판매</pre>
+        <textarea id="bulk-input" rows="12" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;font-family:monospace;outline:none;resize:vertical" placeholder="가게명 | 주소 | 맥주,칵테일 | 설명"></textarea>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+          <button id="btn-bulk-run" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">좌표 변환 후 일괄 등록</button>
+          <button id="btn-bulk-clear" style="padding:10px 16px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;cursor:pointer">입력 비우기</button>
+          <span id="bulk-status" style="font-size:13px;color:var(--muted)"></span>
+        </div>
+        <div id="bulk-log" style="margin-top:16px;font-size:12px;line-height:1.7;max-height:340px;overflow-y:auto"></div>
+      </div>
     </section>
 
     <section id="section-reports" style="display:none">
@@ -272,17 +295,151 @@
   }
 
   function initTabs() {
-    const tabPlaces = document.getElementById("tab-places");
-    const tabReports = document.getElementById("tab-reports");
-    tabPlaces.addEventListener("click", () => switchTab("places"));
-    tabReports.addEventListener("click", () => switchTab("reports"));
+    document.getElementById("tab-places").addEventListener("click", () => switchTab("places"));
+    document.getElementById("tab-reports").addEventListener("click", () => switchTab("reports"));
+    document.getElementById("tab-bulk").addEventListener("click", () => switchTab("bulk"));
+    initBulk();
   }
 
   function switchTab(name) {
     document.getElementById("tab-places").classList.toggle("active", name === "places");
     document.getElementById("tab-reports").classList.toggle("active", name === "reports");
+    document.getElementById("tab-bulk").classList.toggle("active", name === "bulk");
     document.getElementById("section-places").style.display = name === "places" ? "block" : "none";
     document.getElementById("section-reports").style.display = name === "reports" ? "block" : "none";
+    document.getElementById("section-bulk").style.display = name === "bulk" ? "block" : "none";
+    document.getElementById("loading").style.display = (name === "bulk") ? "none" : document.getElementById("loading").style.display;
+  }
+
+  // ── 대량 추가 ──
+  const BULK_TYPE_MAP = {
+    "맥주": "논알콜 맥주 (종류 무관)",
+    "논알콜맥주": "논알콜 맥주 (종류 무관)",
+    "칵테일": "논알콜 칵테일 (종류 무관)",
+    "논알콜칵테일": "논알콜 칵테일 (종류 무관)",
+    "와인": "논알콜 와인 (종류 무관)",
+    "논알콜와인": "논알콜 와인 (종류 무관)",
+  };
+
+  function normalizeTypes(raw) {
+    return (raw || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => BULK_TYPE_MAP[t.replace(/\s/g, "")] || t);
+  }
+
+  function geocodeAddress(address) {
+    return new Promise((resolve) => {
+      try {
+        const geocoder = new kakao.maps.services.Geocoder();
+        geocoder.addressSearch(address, (result, status) => {
+          if (status === kakao.maps.services.Status.OK && result.length > 0) {
+            resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x) });
+          } else {
+            // 주소 검색 실패 시 키워드(장소명) 검색으로 재시도
+            const places = new kakao.maps.services.Places();
+            places.keywordSearch(address, (res, st) => {
+              if (st === kakao.maps.services.Status.OK && res.length > 0) {
+                resolve({ lat: parseFloat(res[0].y), lng: parseFloat(res[0].x) });
+              } else {
+                resolve(null);
+              }
+            });
+          }
+        });
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  function initBulk() {
+    document.getElementById("btn-bulk-clear").addEventListener("click", () => {
+      document.getElementById("bulk-input").value = "";
+      document.getElementById("bulk-log").innerHTML = "";
+      document.getElementById("bulk-status").textContent = "";
+    });
+    document.getElementById("btn-bulk-run").addEventListener("click", runBulkImport);
+  }
+
+  function bulkLog(html, color) {
+    const el = document.getElementById("bulk-log");
+    el.innerHTML += `<div style="color:${color||'var(--text)'}">${html}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function runBulkImport() {
+    const raw = document.getElementById("bulk-input").value.trim();
+    if (!raw) { alert("추가할 가게 목록을 입력해 주세요."); return; }
+
+    const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+    const btn = document.getElementById("btn-bulk-run");
+    const statusEl = document.getElementById("bulk-status");
+    const logEl = document.getElementById("bulk-log");
+    logEl.innerHTML = "";
+    btn.disabled = true;
+    btn.style.opacity = "0.6";
+
+    // 카카오 SDK 로드 보장
+    await new Promise((res) => kakao.maps.load(res));
+
+    // 중복 방지: 기존 가게명 집합
+    let existing = new Set();
+    try {
+      const snap = await db.collection("places").get();
+      existing = new Set(snap.docs.map((d) => (d.data().name || "").trim()));
+    } catch (e) {}
+
+    let ok = 0, fail = 0, dup = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split("|").map((s) => s.trim());
+      const name = parts[0] || "";
+      const address = parts[1] || "";
+      const types = normalizeTypes(parts[2]);
+      const description = parts[3] || "";
+
+      statusEl.textContent = `처리 중... (${i + 1}/${lines.length})`;
+
+      if (!name || !address) {
+        bulkLog(`⚠️ [${i + 1}] 형식 오류 (가게명/주소 없음): <code>${h(lines[i])}</code>`, "#b45309");
+        fail++; continue;
+      }
+      if (existing.has(name)) {
+        bulkLog(`↩️ [${i + 1}] 이미 등록됨, 건너뜀: <b>${h(name)}</b>`, "#64748b");
+        dup++; continue;
+      }
+
+      const coords = await geocodeAddress(address);
+      if (!coords) {
+        bulkLog(`❌ [${i + 1}] 좌표 변환 실패: <b>${h(name)}</b> (${h(address)})`, "#dc2626");
+        fail++; continue;
+      }
+
+      try {
+        await db.collection("places").add({
+          name, address,
+          lat: coords.lat, lng: coords.lng,
+          brands: types.length ? types : ["논알콜 맥주 (종류 무관)"],
+          description,
+          phone: "", hours: "",
+          addedBy: "관리자(대량등록)",
+          source: "bulk",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        existing.add(name);
+        bulkLog(`✅ [${i + 1}] 등록 완료: <b>${h(name)}</b> — ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`, "#16a34a");
+        ok++;
+      } catch (e) {
+        bulkLog(`❌ [${i + 1}] 저장 실패: <b>${h(name)}</b> — ${h(e.message)}`, "#dc2626");
+        fail++;
+      }
+    }
+
+    statusEl.textContent = `완료: 성공 ${ok} · 중복 ${dup} · 실패 ${fail}`;
+    bulkLog(`<br><b>━━ 완료 ━━</b> 성공 ${ok}개 · 중복 ${dup}개 · 실패 ${fail}개`, "#1e293b");
+    btn.disabled = false;
+    btn.style.opacity = "1";
   }
 
   function loadPlaces() {
