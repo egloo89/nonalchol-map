@@ -1318,6 +1318,7 @@ function initSearchToggle() {
   const section = document.getElementById("search-section");
   const backdrop = document.getElementById("search-backdrop");
   const closeBtn = document.getElementById("btn-close-search");
+  const doSearchBtn = document.getElementById("btn-do-search");
   if (!btn || !section) return;
 
   // 원래 위치 복원용 앵커 (삼성 인터넷 등에서 overflow 부모 안의 position:fixed가
@@ -1334,8 +1335,9 @@ function initSearchToggle() {
     btn.classList.toggle("active", open);
     if (backdrop) backdrop.classList.toggle("open", open);
     btn.textContent = open ? "🔍 검색 닫기" : "🔍 논알콜 판매 가게 검색";
-    if (!open && anchor.parentNode) {
-      anchor.parentNode.insertBefore(section, anchor); // 원래 위치로 복원
+    if (!open) {
+      applyFilters(); // 팝업 닫힐 때 지도 마커 확정 반영
+      if (anchor.parentNode) anchor.parentNode.insertBefore(section, anchor);
     }
   }
 
@@ -1344,4 +1346,10 @@ function initSearchToggle() {
   });
   if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
   if (backdrop) backdrop.addEventListener("click", () => setOpen(false));
+  if (doSearchBtn) doSearchBtn.addEventListener("click", () => {
+    // 검색어 확정 후 팝업 닫기
+    const input = document.getElementById("search-input");
+    if (input) currentSearch = input.value.trim().toLowerCase();
+    setOpen(false);
+  });
 }

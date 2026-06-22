@@ -178,8 +178,9 @@ body {
 .btn-search-toggle.active { background: white; color: var(--primary); }
 .btn-search-toggle:active { transform: scale(0.98); }
 
-/* 검색 팝업 헤더 (모바일 팝업에서만 표시) */
+/* 검색 팝업 헤더 + 검색하기 버튼 (모바일 팝업에서만 표시) */
 .search-popup-head { display: none; }
+.btn-do-search { display: none; }
 .search-popup-close {
   background: none;
   border: none;
@@ -1359,6 +1360,26 @@ body {
     border: 2px solid var(--primary);
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
     color: #111;
+  }
+
+  /* 검색하기 버튼 (팝업 안) */
+  .search-section.open .btn-do-search {
+    display: block;
+    width: calc(100% - 24px);
+    margin: 4px 12px 16px;
+    padding: 15px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  .search-section.open .btn-do-search:active {
+    background: var(--primary-dark);
+    transform: scale(0.98);
   }
 
   /* ── 알콜 안내 ── */
