@@ -23,6 +23,8 @@ let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
 let userLocationOverlay = null; // 현재 위치 파란 원 마커
 let lastNonMarkerClick = 0; // NON 마커 클릭 시각 (맵 클릭 이벤트 중복 방지)
 let isMapBlocked = false;
+let scheduleMapLayout = function () {};
+let mapAdjusting = false;
 
 const NON_PIN_WIDTH_PX = 44;
 const NON_PIN_HEIGHT_PX = 52;
@@ -603,8 +605,47 @@ function initMap() {
   loadPlaces();
 }
 
-// 컨테이너 크기를 정수 픽셀로 맞춘 뒤 relayout.
-// 창 크기 변경·모바일 주소창에 따라 타일이 비거나 흐려지는 것을 막는다.
+// relayout은 가로·세로가 바뀔 때만 동작하고, 세로가 늘면 중심 좌표를 함께 옮긴다.
+// 타일 격자는 그 이동을 따라 다시 깔리지 않아 오른쪽·아래가 빈 타일(white.png)로 남는다.
+function copyLatLng(latlng) {
+  return new kakao.maps.LatLng(latlng.getLat(), latlng.getLng());
+}
+
+function refillMapTiles() {
+  if (!map || mapAdjusting) return;
+  const level = map.getLevel();
+  const other = level > 1 ? level - 1 : level + 1;
+  if (other === level) return;
+  mapAdjusting = true;
+  try {
+    map.setLevel(other, { animate: false });
+    map.setLevel(level, { animate: false });
+  } finally {
+    mapAdjusting = false;
+  }
+}
+
+// 줌을 너무 멀리 빼면 지도 그림이 뷰포트보다 작아 가장자리가 하얗게 빈다.
+// 긴 변 1000px 이상이면 최대 13레벨, 1900px 이상이면 최대 12레벨이다.
+function maxLevelForMapSize(width, height) {
+  const longEdge = Math.max(width, height);
+  if (longEdge >= 1900) return 12;
+  if (longEdge >= 1000) return 13;
+  return 14;
+}
+
+function applyZoomCap(width, height) {
+  const maxLevel = maxLevelForMapSize(width, height);
+  if (map.setMaxLevel) map.setMaxLevel(maxLevel);
+  if (map.getLevel() <= maxLevel) return;
+  mapAdjusting = true;
+  try {
+    map.setLevel(maxLevel, { animate: false });
+  } finally {
+    mapAdjusting = false;
+  }
+}
+
 function bindMapLayout() {
   const container = document.getElementById("map-container");
   const mapEl = document.getElementById("map");
@@ -613,25 +654,43 @@ function bindMapLayout() {
   let frame = 0;
   let lastWidth = 0;
   let lastHeight = 0;
+  let centerBeforeResize = null;
+
+  // 카카오의 resize 리스너(버블)보다 먼저 중심을 잡아 둔다.
+  window.addEventListener("resize", () => {
+    if (!map || centerBeforeResize) return;
+    centerBeforeResize = copyLatLng(map.getCenter());
+  }, true);
 
   const sync = () => {
     if (!map) return;
-    const rect = container.getBoundingClientRect();
-    const width = Math.ceil(rect.width);
-    const height = Math.ceil(rect.height);
+    const width = container.clientWidth;
+    const height = container.clientHeight;
     if (width < MIN_MAP_EDGE_PX || height < MIN_MAP_EDGE_PX) return;
-    if (width === lastWidth && height === lastHeight) return;
+    if (width === lastWidth && height === lastHeight) {
+      centerBeforeResize = null;
+      return;
+    }
+    const resized = lastWidth > 0;
+    const center = resized ? (centerBeforeResize || copyLatLng(map.getCenter())) : null;
+    centerBeforeResize = null;
     lastWidth = width;
     lastHeight = height;
     mapEl.style.width = width + "px";
     mapEl.style.height = height + "px";
     map.relayout();
+    applyZoomCap(width, height);
+    if (!center) return;
+    map.setCenter(center);
+    refillMapTiles();
+    map.setCenter(center);
   };
 
   const schedule = () => {
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(sync);
+    window.clearTimeout(frame);
+    frame = window.setTimeout(sync, 60);
   };
+  scheduleMapLayout = schedule;
 
   if (window.ResizeObserver) {
     const observer = new ResizeObserver(schedule);
@@ -641,6 +700,9 @@ function bindMapLayout() {
   window.addEventListener("orientationchange", schedule);
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", schedule);
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(schedule);
   }
   schedule();
 }
@@ -1115,6 +1177,7 @@ function layoutFilterChips() {
   const chips = [...bar.querySelectorAll(".filter-chip")];
   chips.forEach((chip) => { chip.hidden = false; });
   bar.classList.toggle("expanded", filtersExpanded);
+  scheduleMapLayout();
   if (!chips.length) {
     toggle.hidden = true;
     return;
