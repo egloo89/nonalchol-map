@@ -94,11 +94,11 @@
       <div class="subtitle">술 줄이기 프로젝트</div>
     </div>
   </div>
-  <div class="spacer"></div>
   <div id="header-support">
     <span class="hs-msg">개발하다가 소주 3병 들이킬뻔한 개발자에게 논알콜 한잔 후원 ▼</span>
     <span class="hs-acct"><strong>하나은행</strong> 415-910260-48807 박건휘</span>
   </div>
+  <div class="header-actions">
   <span class="count-badge" id="place-count">0개 가게</span>
   <div id="auth-section">
     <div id="auth-logged-out">
@@ -115,6 +115,7 @@
   <button id="btn-report-place">📢 가게 제보</button>
   <button id="btn-secret-pc" type="button">🤫 시크릿</button>
   <button id="btn-add-place">＋ 가게 추가</button>
+  </div>
 </header>
 
 <!-- ─── 모바일 전용: 상단 검색바 ─── -->
@@ -150,23 +151,25 @@
         <span>🔍 논알콜 판매 가게 검색</span>
         <button type="button" id="btn-close-search" class="search-popup-close" aria-label="닫기">✕</button>
       </div>
+      <label class="visually-hidden" for="search-input">가게 이름, 주소, 맥주 브랜드 검색</label>
+      <input
+        id="search-input"
+        type="search"
+        placeholder="논알콜 맥주 판매 가게 검색, 맥주 브랜드 검색"
+        aria-label="가게 이름, 주소, 맥주 브랜드 검색"
+      />
       <div id="abv-guide">
         <span class="abv-item"><b>0.00%</b> 완전 무알콜</span>
         <span class="abv-divider">·</span>
         <span class="abv-item"><b>0.0%</b> 0.1~1% 미만</span>
       </div>
       <div id="brand-filter"></div>
-      <input
-        id="search-input"
-        type="search"
-        placeholder="논알콜 맥주 판매 가게 검색, 맥주 브랜드 검색"
-      />
       <button type="button" id="btn-do-search" class="btn-do-search">🔍 검색하기</button>
     </div>
     <div id="filter-status"></div>
-    <div id="place-list">
+    <div id="place-list" aria-label="가게 목록">
       <div id="empty-state">
-        <div class="icon">⏳</div>
+        <div class="map-spinner" aria-hidden="true"></div>
         <p>가게 정보를 불러오는 중...</p>
       </div>
     </div>
@@ -176,9 +179,9 @@
   <div id="search-backdrop"></div>
 
   <!-- 지도 -->
-  <div id="map-container">
-    <div id="map-message">
-      <span>⏳</span>
+  <div id="map-container" role="application" aria-label="논알콜 가게 지도">
+    <div id="map-message" role="status">
+      <span class="map-spinner" aria-hidden="true"></span>
       <span>지도를 불러오는 중...</span>
     </div>
     <div id="map"></div>

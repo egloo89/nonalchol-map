@@ -16,6 +16,12 @@ let currentUser = null; // { uid, nickname }
 let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
 let userLocationOverlay = null; // 현재 위치 파란 원 마커
 let lastNonMarkerClick = 0; // NON 마커 클릭 시각 (맵 클릭 이벤트 중복 방지)
+let isMapBlocked = false;
+
+const NON_PIN_WIDTH_PX = 44;
+const NON_PIN_HEIGHT_PX = 52;
+const MIN_MAP_EDGE_PX = 1;
+const MAP_READY_FALLBACK_MS = 8000;
 
 const BRANDS = [
   "논알콜 맥주 (종류 무관)",
@@ -454,11 +460,60 @@ function initMap() {
     searchAndShowPoiInfo(mouseEvent.latLng);
   });
 
-  hideMapMessage();
+  bindMapLayout();
+  revealMapWhenTilesReady();
 
   // Firebase가 아직 준비 안 됐으면 먼저 초기화 (로드 순서 경쟁 방지)
   if (!window.db) initFirebase();
   loadPlaces();
+}
+
+// 컨테이너 크기를 정수 픽셀로 맞춘 뒤 relayout.
+// 창 크기 변경·모바일 주소창에 따라 타일이 비거나 흐려지는 것을 막는다.
+function bindMapLayout() {
+  const container = document.getElementById("map-container");
+  const mapEl = document.getElementById("map");
+  if (!container || !mapEl || !map) return;
+
+  let frame = 0;
+  let lastWidth = 0;
+  let lastHeight = 0;
+
+  const sync = () => {
+    if (!map) return;
+    const rect = container.getBoundingClientRect();
+    const width = Math.ceil(rect.width);
+    const height = Math.ceil(rect.height);
+    if (width < MIN_MAP_EDGE_PX || height < MIN_MAP_EDGE_PX) return;
+    if (width === lastWidth && height === lastHeight) return;
+    lastWidth = width;
+    lastHeight = height;
+    mapEl.style.width = width + "px";
+    mapEl.style.height = height + "px";
+    map.relayout();
+  };
+
+  const schedule = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(sync);
+  };
+
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(schedule);
+    observer.observe(container);
+  }
+  window.addEventListener("resize", schedule);
+  window.addEventListener("orientationchange", schedule);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", schedule);
+  }
+  schedule();
+}
+
+function revealMapWhenTilesReady() {
+  const reveal = () => hideMapMessage();
+  kakao.maps.event.addListener(map, "tilesloaded", reveal);
+  window.setTimeout(reveal, MAP_READY_FALLBACK_MS);
 }
 
 function closeInfoWindow() {
@@ -636,14 +691,7 @@ function renderMarkers(filtered) {
     lastPos = position;
     validCount++;
 
-    // NON 핀 마커 (CustomOverlay)
-    const markerEl = document.createElement("div");
-    markerEl.innerHTML = `
-      <div class="non-marker">
-        <div class="non-pin">NON</div>
-        <div class="non-tail"></div>
-      </div>
-    `;
+    const markerEl = createNonMarkerElement();
 
     const marker = new kakao.maps.CustomOverlay({
       position,
@@ -682,6 +730,16 @@ function renderMarkers(filtered) {
       lastNonMarkerClick = Date.now(); // 클릭 핸들러보다 먼저 타임스탬프 기록
     }, { passive: true });
     markerEl.addEventListener("click", openNonInfo);
+    markerEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      openNonInfo(e);
+    });
+
+    infoEl.querySelector(".iw-close")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      kakao.maps.event.preventMap();
+      closeInfoWindow();
+    });
 
     // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 새 탭 이동)
     infoEl.querySelector(".btn-naver-map")?.addEventListener("click", (e) => {
@@ -720,6 +778,7 @@ function buildInfoWindowContent(place) {
 
   return `
     <div class="info-window">
+      <button type="button" class="iw-close" aria-label="정보창 닫기">✕</button>
       <div class="iw-name">${escapeHtml(place.name)}</div>
       <div class="iw-address">📍 ${escapeHtml(place.address)}</div>
       ${brandsHtml ? `<div class="iw-brands">${brandsHtml}</div>` : ""}
@@ -756,7 +815,7 @@ function renderSidebar(list) {
 
   container.innerHTML = list
     .map((p) => `
-      <div class="place-card" data-id="${p.id}" onclick="focusPlace('${p.id}')">
+      <div class="place-card" role="button" tabindex="0" data-id="${p.id}" onclick="focusPlace('${p.id}')" aria-label="${escapeHtml(p.name)} 지도에서 보기">
         <div class="name">${escapeHtml(p.name)}</div>
         <div class="address">📍 ${escapeHtml(p.address)}</div>
         <div class="brands">
@@ -809,8 +868,8 @@ function initBrandFilter() {
   if (!container) return;
   const chips = ["전체", ...BRANDS];
   const hiddenCount = chips.length - FILTER_PREVIEW;
-  // 기본은 펼친 상태 (PC·모바일 공통). 접기 버튼으로만 접힘
-  let expanded = true;
+  // 기본은 접어서 가게 목록이 바로 보이게 한다. 더 보기로 펼친다.
+  let expanded = false;
 
   container.innerHTML =
     chips.map((b, i) => `
@@ -862,7 +921,7 @@ function initBrandFilter() {
     applyExpanded();
   });
 
-  applyExpanded(); // 초기 상태 적용 (PC 펼침 / 모바일 접힘)
+  applyExpanded();
 }
 
 function getFilteredPlaces() {
@@ -926,6 +985,19 @@ function clearFilters() {
 document.getElementById("search-input").addEventListener("input", function () {
   currentSearch = this.value.trim().toLowerCase();
   applyFilters();
+});
+
+document.getElementById("place-list").addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const card = event.target.closest(".place-card");
+  if (!card) return;
+  event.preventDefault();
+  window.focusPlace(card.dataset.id);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || isAnyModalOpen()) return;
+  closeInfoWindow();
 });
 
 // ─── 가게 추가 모달 ────────────────────────────────
@@ -1338,12 +1410,36 @@ function showToast(msg, type = "") {
 
 function showMapMessage(msg, isError = false) {
   const el = document.getElementById("map-message");
-  el.innerHTML = `<span>${isError ? "⚠️" : "⏳"}</span><span>${msg}</span>`;
+  if (isError) isMapBlocked = true;
+  const mark = isError
+    ? `<span aria-hidden="true">⚠️</span>`
+    : `<span class="map-spinner" aria-hidden="true"></span>`;
+  el.innerHTML = `${mark}<span>${msg}</span>`;
   el.classList.remove("hidden");
 }
 
 function hideMapMessage() {
+  if (isMapBlocked) return;
   document.getElementById("map-message").classList.add("hidden");
+}
+
+function createNonMarkerElement() {
+  const markerEl = document.createElement("div");
+  markerEl.className = "non-marker";
+  markerEl.setAttribute("role", "button");
+  markerEl.tabIndex = 0;
+  markerEl.setAttribute("aria-label", "논알콜 가게 마커");
+  markerEl.innerHTML = `
+    <svg class="non-pin-svg" width="${NON_PIN_WIDTH_PX}" height="${NON_PIN_HEIGHT_PX}" viewBox="0 0 44 52" aria-hidden="true" focusable="false">
+      <path d="M22 50.2c.5 0 8.4-9.4 13.4-16.4C39.8 27.6 42 23.2 42 19 42 9.4 33.9 2 22 2S2 9.4 2 19c0 4.2 2.2 8.6 6.6 14.8C13.6 40.8 21.5 50.2 22 50.2z" fill="#2563eb" stroke="#ffffff" stroke-width="2"/>
+      <text x="22" y="23" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" font-family="Pretendard, -apple-system, BlinkMacSystemFont, sans-serif" letter-spacing="0.3">NON</text>
+    </svg>
+  `;
+  return markerEl;
+}
+
+function isAnyModalOpen() {
+  return !!document.querySelector(".modal-overlay.active");
 }
 
 // ─── 유틸 ─────────────────────────────────────────

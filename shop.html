@@ -147,9 +147,24 @@
     .product .name {
       font-size: 13px; font-weight: 600;
       line-height: 1.35;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       word-break: keep-all;
       overflow-wrap: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .product .price {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #111827;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .product:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 3px;
     }
     .product .buy {
       margin-top: auto;
@@ -195,9 +210,20 @@
 
   <script>
     // =====================================================
-    // 상품 데이터
-    // img: 쿠팡 상품 페이지에서 이미지 우클릭 → "이미지 주소 복사" 후 붙여넣으면
-    //      해당 이미지가 표시됩니다. 비워두면 이모지 썸네일로 표시됩니다.
+    // 상품 데이터 — 새 링크는 여기 items 배열에 한 줄 추가
+    //
+    // 번호(1, 2, 3…)는 적지 않습니다.
+    // 화면 위쪽 카테고리부터, 각 카테고리 안에서는 배열 순서대로 자동으로 붙습니다.
+    //
+    // 형식 (price 는 없으면 생략):
+    // { name: "상품 이름", price: "12,900원", url: "https://link.coupang.com/a/발급코드", img: "https://이미지주소" },
+    //
+    // name  : 카드 제목 (필수)
+    // price : 가격 문구. 예) "12,900원". 비우거나 빼면 가격 줄이 안 나옵니다.
+    // url   : 쿠팡 파트너스 단축 링크. link.coupang.com 또는 coupa.ng (필수).
+    //         일반 www.coupang.com 주소는 넣지 않습니다.
+    // img   : 상품 이미지 주소. 쿠팡 상품 이미지 우클릭 → 이미지 주소 복사.
+    //         비우면 이모지가 나옵니다.
     // =====================================================
     const SHOP = [
       {
@@ -310,16 +336,19 @@
         const cards = cat.items.map((p) => {
           n += 1;
           const thumb = p.img
-            ? `<img src="${escapeHtml(p.img)}" alt="${escapeHtml(p.name)}" loading="lazy" decoding="async" />`
+            ? `<img src="${escapeHtml(p.img)}" alt="" loading="lazy" decoding="async" />`
             : `<span class="ph">${PLACEHOLDER[cat.emoji] || "🥤"}</span>`;
+          const price = p.price ? `<div class="price">${escapeHtml(p.price)}</div>` : "";
+          const label = `${n}번. ${p.name}${p.price ? ", " + p.price : ""}. 쿠팡에서 구매하기`;
           return `
-            <a class="product${p.img ? " has-img" : ""}" href="${escapeHtml(p.url)}" target="_blank" rel="noopener sponsored">
+            <a class="product${p.img ? " has-img" : ""}" href="${escapeHtml(p.url)}" target="_blank" rel="noopener sponsored" aria-label="${escapeHtml(label)}">
               <div class="thumb">
                 <span class="num">${n}</span>
                 ${thumb}
               </div>
               <div class="body">
                 <div class="name">${escapeHtml(p.name)}</div>
+                ${price}
                 <div class="buy">구매하기 →</div>
               </div>
             </a>`;
@@ -337,7 +366,19 @@
             <div class="grid">${cards}</div>
           </section>`;
       }).join("");
-      document.getElementById("shop-list").innerHTML = html;
+      const list = document.getElementById("shop-list");
+      list.innerHTML = html;
+      list.querySelectorAll(".product img").forEach((img) => {
+        img.addEventListener("error", () => {
+          const thumb = img.closest(".thumb");
+          img.remove();
+          if (!thumb || thumb.querySelector(".ph")) return;
+          const fallback = document.createElement("span");
+          fallback.className = "ph";
+          fallback.textContent = "🥤";
+          thumb.appendChild(fallback);
+        });
+      });
     }
 
     render();
