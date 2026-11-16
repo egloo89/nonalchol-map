@@ -497,54 +497,48 @@ body {
   color: #d97706;
 }
 
-#brand-filter {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+#filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  max-height: 46px;
+  overflow: hidden;
+}
+
+#filter-bar.expanded {
+  max-height: 168px;
+  overflow: auto;
 }
 
 .filter-chip {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
   background: var(--card-bg);
   font-size: 12px;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
   user-select: none;
-  text-align: left;
-  min-width: 0;
-}
-
-.filter-chip.chip-all {
-  grid-column: 1 / -1;
-  justify-content: center;
-  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.2;
+  flex: 0 0 auto;
 }
 
 .filter-chip .chip-icon {
-  font-size: 15px;
+  font-size: 13px;
   flex-shrink: 0;
 }
 
 .filter-chip .chip-label {
-  white-space: normal;
-  overflow-wrap: break-word;
-  word-break: keep-all;
-  line-height: 1.35;
-}
-
-.filter-chip .chip-sub {
-  font-size: 10px;
-  opacity: 0.75;
-  display: block;
+  white-space: nowrap;
 }
 
 .filter-chip:hover {
@@ -565,17 +559,16 @@ body {
 }
 
 #filter-toggle {
-  grid-column: 1 / -1;
-  padding: 7px;
+  padding: 5px 10px;
   background: var(--bg);
-  border: 1.5px dashed var(--border);
-  border-radius: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s;
-  text-align: center;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 #filter-toggle:hover {
@@ -1563,24 +1556,23 @@ input:focus-visible,
   /* 검색 토글 버튼 표시 안함 (mobile-search-pill 사용) */
   .btn-search-toggle { display: none; }
 
-  /* 검색/필터 섹션: 기본 숨김 → 버튼 누르면 큰 팝업 창으로 표시 */
-  .search-section { display: none; }
+  /* 검색과 필터는 목록 위 한 줄. 지도 위를 가리는 팝업으로 열지 않는다. */
+  .search-section,
   .search-section.open {
     display: block;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 92%;
-    max-width: 440px;
-    max-height: 82vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
-    z-index: 1000;
-    padding-bottom: 8px;
+    position: static;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    z-index: auto;
+    padding-bottom: 0;
   }
 
   /* 팝업 헤더: 상단 고정 */
@@ -1602,13 +1594,13 @@ input:focus-visible,
 
   .search-section #search-input {
     width: calc(100% - 24px);
-    margin: 0 12px 12px;
+    margin: 8px 12px 0;
     font-size: 16px;
-    padding: 13px 14px;
+    padding: 10px 12px;
     border-radius: 12px;
     background: white;
-    border: 2px solid var(--primary);
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+    border: 1px solid var(--border);
+    box-shadow: none;
     color: #111;
   }
 
@@ -1635,20 +1627,11 @@ input:focus-visible,
   /* ── 알콜 안내 ── */
   #abv-guide { font-size: 11px; padding: 7px 12px; }
 
-  /* ── 필터: 탭하기 쉽게 크게 ── */
-  #brand-filter { padding: 10px 12px; gap: 8px; }
-
-  .filter-chip {
-    font-size: 14px;
-    padding: 12px 12px;
-    gap: 7px;
-    border-radius: 10px;
-    min-height: 48px;
-  }
-
-  .filter-chip .chip-icon { font-size: 17px; flex-shrink: 0; }
-  .filter-chip .chip-sub { font-size: 11px; }
-  #filter-toggle { font-size: 14px; padding: 12px; min-height: 44px; }
+  #filter-bar { padding: 8px 12px; max-height: 44px; }
+  #filter-bar.expanded { max-height: 120px; }
+  .filter-chip { font-size: 13px; padding: 6px 10px; min-height: 32px; }
+  #filter-toggle { font-size: 13px; min-height: 32px; }
+  #abv-guide { display: none; }
 
   /* ── 가게 카드 ── */
   .place-card { padding: 11px; }
