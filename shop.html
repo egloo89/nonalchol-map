@@ -16,6 +16,8 @@
   <meta property="og:image" content="https://nonalchol-map.vercel.app/icon-512.png" />
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="analytics.js"></script>
+  <script defer src="/_vercel/insights/script.js"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -361,6 +363,17 @@
       }).join("");
       const list = document.getElementById("shop-list");
       list.innerHTML = html;
+      if (!list.dataset.clickBound) {
+        list.dataset.clickBound = "1";
+        const onBuyClick = (event) => {
+          const link = event.target.closest("a.product");
+          if (!link) return;
+          const name = link.querySelector(".name");
+          if (window.trackCoupangClick) trackCoupangClick(name ? name.textContent : "");
+        };
+        list.addEventListener("click", onBuyClick);
+        list.addEventListener("auxclick", onBuyClick);
+      }
       list.querySelectorAll(".product img").forEach((img) => {
         img.addEventListener("error", () => {
           const thumb = img.closest(".thumb");

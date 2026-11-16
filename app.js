@@ -10,7 +10,13 @@ let places = [];
 let currentInfoWindow = null;
 let geocoderResult = null;
 let currentPoiPlace = null;
-let selectedBrands = new Set(); // 비어있으면 "전체"
+const selectedFilters = {
+  kind: new Set(),
+  brand: new Set(),
+  region: new Set(),
+  venue: new Set(),
+};
+let filtersExpanded = false;
 let currentSearch = "";
 let currentUser = null; // { uid, nickname }
 let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
@@ -87,6 +93,135 @@ const BRAND_COLORS = {
   "레페 브뤼 논알콜":              { bg: "#fdf2f8", color: "#831843", border: "#f0abfc" },
   "기타":                          { bg: "#f8fafc", color: "#64748b", border: "#e2e8f0" },
 };
+
+const BEER_PRODUCTS = new Set([
+  "카스 제로 (0.0)",
+  "하이네켄 제로 (0.0)",
+  "하이트 제로 (0.00)",
+  "클라우드 클리어 제로",
+  "버드와이저 제로",
+  "칼스버그 0.0",
+  "코로나 선플로우 (Sunbrew)",
+  "에르딩거 알코올프리",
+  "파울라너 알코올프리",
+  "바이엔슈테판 알코올프리",
+  "칭따오 논알콜",
+  "아사히 드라이 제로",
+  "산 미구엘 0.0",
+]);
+
+const DRINK_KINDS = [
+  { id: "beer", label: "논알콜 맥주", icon: "🍺" },
+  { id: "wine", label: "논알콜 와인", icon: "🍷" },
+  { id: "cocktail", label: "칵테일·하이볼", icon: "🍹" },
+  { id: "sawa", label: "사와", icon: "🍋" },
+];
+
+const GENERIC_BRANDS = new Set([
+  "논알콜 맥주 (종류 무관)",
+  "논알콜 와인 (종류 무관)",
+  "논알콜 칵테일 (종류 무관)",
+  "논알콜 사와 (종류 무관)",
+]);
+
+const VENUE_TYPES = [
+  { id: "bar", label: "바·펍", icon: "🍸" },
+  { id: "restaurant", label: "식당", icon: "🍽️" },
+  { id: "cafe", label: "카페", icon: "☕" },
+  { id: "shop", label: "판매점", icon: "🏪" },
+];
+
+// 카카오 업종 또는 기사로 종류가 확인된 기존 가게만 적는다.
+const VENUE_BY_NAME = {
+  "야키토리고우": "bar",
+  "야몽야몽": "restaurant",
+  "로우샹로우": "restaurant",
+  "연남마실": "bar",
+  "맥주는 별책부록": "restaurant",
+  "카페 물리노": "cafe",
+  "232Seoul": "bar",
+  "와이낫 칵테일바": "bar",
+  "Artist Bottle Club": "shop",
+  "NOLO!": "bar",
+  "오늘하루이야기": "bar",
+  "베를리너 부어스트": "restaurant",
+  "Perlen": "cafe",
+  "선유혼합음료": "cafe",
+};
+
+// 주소에 시·도가 없는 기존 가게. 카카오 coord2regioncode 결과.
+const REGION_BY_NAME = {
+  "야몽야몽": "서울",
+  "로우샹로우": "서울",
+  "맥주는 별책부록": "서울",
+  "베를리너 부어스트": "서울",
+};
+
+const SIDO_PREFIXES = [
+  ["서울", "서울"],
+  ["부산", "부산"],
+  ["대구", "대구"],
+  ["인천", "인천"],
+  ["광주", "광주"],
+  ["대전", "대전"],
+  ["울산", "울산"],
+  ["세종", "세종"],
+  ["제주", "제주"],
+  ["경기", "경기"],
+  ["강원", "강원"],
+  ["충청북", "충북"],
+  ["충북", "충북"],
+  ["충청남", "충남"],
+  ["충남", "충남"],
+  ["전북", "전북"],
+  ["전라북", "전북"],
+  ["전라남", "전남"],
+  ["전남", "전남"],
+  ["경상북", "경북"],
+  ["경북", "경북"],
+  ["경상남", "경남"],
+  ["경남", "경남"],
+];
+
+function parseSido(address) {
+  const compact = String(address || "").replace(/\s/g, "");
+  for (const [prefix, label] of SIDO_PREFIXES) {
+    if (compact.startsWith(prefix)) return label;
+  }
+  return "";
+}
+
+function placeKey(place) {
+  return String(place.name || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function placeKindIds(place) {
+  const ids = new Set(place.kinds || []);
+  (place.brands || []).forEach((brand) => {
+    if (brand.includes("사와")) ids.add("sawa");
+    else if (brand.includes("와인")) ids.add("wine");
+    else if (brand.includes("칵테일") || brand.includes("하이볼")) ids.add("cocktail");
+    else if (brand.includes("맥주") || BEER_PRODUCTS.has(brand)) ids.add("beer");
+  });
+  return ids;
+}
+
+function placeVenue(place) {
+  if (VENUE_TYPES.some((venue) => venue.id === place.venueType)) return place.venueType;
+  return VENUE_BY_NAME[place.name] || "";
+}
+
+function placeRegion(place) {
+  return place.region || parseSido(place.address) || REGION_BY_NAME[place.name] || "";
+}
+
+function hasActiveFilter() {
+  return selectedFilters.kind.size > 0
+    || selectedFilters.brand.size > 0
+    || selectedFilters.region.size > 0
+    || selectedFilters.venue.size > 0
+    || Boolean(currentSearch);
+}
 
 function brandTagHtml(brand) {
   const c = BRAND_COLORS[brand];
@@ -626,9 +761,13 @@ let prevPlaceCount = -1;
 function loadPlaces() {
   db.collection("places")
     .onSnapshot((snapshot) => {
-      places = snapshot.docs
+      const fromDb = snapshot.docs
         .map((doc) => ({ id: doc.id, ...doc.data() }))
         .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      const seen = new Set(fromDb.map(placeKey));
+      const curatedSource = typeof CURATED_PLACES !== "undefined" ? CURATED_PLACES : [];
+      const curated = curatedSource.filter((place) => !seen.has(placeKey(place)));
+      places = fromDb.concat(curated);
       console.log("[loadPlaces] 가게 수:", places.length, places.map(p => `${p.name}(${p.lat},${p.lng})`));
 
       // 지도가 열린 상태에서 새 가게가 승인/추가되면 그 위치로 이동하도록 범위 재조정
@@ -642,6 +781,7 @@ function loadPlaces() {
       prevPlaceCount = places.length;
 
       updateCount(places.length);
+      renderFilterBar();
       applyFilters();
     }, (err) => {
       console.error("[loadPlaces] Firestore 오류 (보안 규칙 확인 필요):", err.code, err.message);
@@ -796,7 +936,7 @@ function renderSidebar(list) {
   const container = document.getElementById("place-list");
 
   if (list.length === 0) {
-    const isFiltering = selectedBrands.size > 0 || currentSearch;
+    const isFiltering = hasActiveFilter();
     container.innerHTML = isFiltering
       ? `
       <div id="empty-state">
@@ -858,82 +998,175 @@ function updateCount(n) {
   if (el) el.textContent = `${n}개 가게`;
 }
 
-// ─── 브랜드 필터 ───────────────────────────────────
+// ─── 필터 ──────────────────────────────────────────
 
-
-const FILTER_PREVIEW = 5; // 전체 + 논알콜 맥주, 논알콜 칵테일, 카스 제로, 하이네켄 제로
-
-function initBrandFilter() {
-  const container = document.getElementById("brand-filter");
-  if (!container) return;
-  const chips = ["전체", ...BRANDS];
-  const hiddenCount = chips.length - FILTER_PREVIEW;
-  // 기본은 접어서 가게 목록이 바로 보이게 한다. 더 보기로 펼친다.
-  let expanded = false;
-
-  container.innerHTML =
-    chips.map((b, i) => `
-      <button type="button"
-        class="filter-chip${i === 0 ? " active chip-all" : ""}${i >= FILTER_PREVIEW ? " chip-collapsed" : ""}"
-        data-brand="${escapeHtml(b)}">
-        <span class="chip-icon">${BRAND_ICONS[b] || "🍺"}</span>
-        <span class="chip-label">${escapeHtml(b).replace("(종류 무관)", "<br><span class='chip-sub'>(종류 무관)</span>")}</span>
-      </button>`).join("") +
-    `<button type="button" id="filter-toggle" class="filter-toggle">
-       <span id="filter-toggle-text">${expanded ? "▲ 접기" : `+ ${hiddenCount}개 더 보기`}</span>
-     </button>`;
-
-  function syncChipStates() {
-    container.querySelectorAll(".filter-chip").forEach((c) => {
-      if (c.dataset.brand === "전체") {
-        c.classList.toggle("active", selectedBrands.size === 0);
-      } else {
-        c.classList.toggle("active", selectedBrands.has(c.dataset.brand));
-      }
+function countPlaces(pick) {
+  const counts = new Map();
+  places.forEach((place) => {
+    pick(place).forEach((key) => {
+      if (!key) return;
+      counts.set(key, (counts.get(key) || 0) + 1);
     });
+  });
+  return counts;
+}
+
+function byDemand(a, b) {
+  return b.count - a.count || a.label.localeCompare(b.label, "ko");
+}
+
+function buildFilterChips() {
+  const chips = [{ group: "all", value: "전체", label: "전체", icon: "✨" }];
+
+  const kindCounts = countPlaces((place) => placeKindIds(place));
+  DRINK_KINDS
+    .map((kind) => ({ ...kind, count: kindCounts.get(kind.id) || 0 }))
+    .filter((kind) => kind.count > 0)
+    .sort(byDemand)
+    .forEach((kind) => chips.push({ group: "kind", value: kind.id, label: kind.label, icon: kind.icon }));
+
+  const brandCounts = countPlaces((place) => (place.brands || []).filter((brand) => !GENERIC_BRANDS.has(brand)));
+  [...brandCounts.entries()]
+    .map(([value, count]) => ({ value, count, label: value, icon: BRAND_ICONS[value] || "🏷️" }))
+    .sort(byDemand)
+    .forEach((brand) => chips.push({ group: "brand", value: brand.value, label: brand.label, icon: brand.icon }));
+
+  const regionCounts = countPlaces((place) => [placeRegion(place)]);
+  [...regionCounts.entries()]
+    .map(([value, count]) => ({ value, count, label: value, icon: "📍" }))
+    .sort(byDemand)
+    .forEach((region) => chips.push({ group: "region", value: region.value, label: region.label, icon: region.icon }));
+
+  const venueCounts = countPlaces((place) => [placeVenue(place)]);
+  VENUE_TYPES
+    .map((venue) => ({ ...venue, count: venueCounts.get(venue.id) || 0 }))
+    .filter((venue) => venue.count > 0)
+    .sort(byDemand)
+    .forEach((venue) => chips.push({ group: "venue", value: venue.id, label: venue.label, icon: venue.icon }));
+
+  return chips;
+}
+
+function chipIsActive(chip) {
+  if (chip.group === "all") {
+    return selectedFilters.kind.size + selectedFilters.brand.size + selectedFilters.region.size + selectedFilters.venue.size === 0;
   }
+  return selectedFilters[chip.group]?.has(chip.value);
+}
 
-  container.querySelectorAll(".filter-chip").forEach((chip) => {
-    chip.addEventListener("click", () => {
-      const brand = chip.dataset.brand;
-      if (brand === "전체") {
-        selectedBrands.clear(); // 전체 = 모든 필터 해제
-      } else if (selectedBrands.has(brand)) {
-        selectedBrands.delete(brand); // 중복선택 토글 해제
-      } else {
-        selectedBrands.add(brand); // 중복선택 추가
-      }
-      syncChipStates();
-      applyFilters();
-    });
+function renderFilterBar() {
+  const container = document.getElementById("filter-bar");
+  if (!container) return;
+  const chips = buildFilterChips();
+  container.classList.toggle("expanded", filtersExpanded);
+  container.innerHTML = chips.map((chip) => `
+    <button type="button"
+      class="filter-chip${chipIsActive(chip) ? " active" : ""}"
+      data-group="${escapeHtml(chip.group)}"
+      data-value="${escapeHtml(chip.value)}">
+      <span class="chip-icon" aria-hidden="true">${chip.icon}</span>
+      <span class="chip-label">${escapeHtml(chip.label)}</span>
+    </button>`).join("") +
+    `<button type="button" id="filter-toggle" class="filter-toggle">더 보기</button>`;
+
+  container.querySelectorAll(".filter-chip").forEach((button) => {
+    button.addEventListener("click", () => toggleFilterChip(button.dataset.group, button.dataset.value));
   });
-
-  const applyExpanded = () => {
-    container.querySelectorAll(".chip-collapsed").forEach((c) => {
-      c.style.display = expanded ? "" : "none";
-    });
-    document.getElementById("filter-toggle-text").textContent =
-      expanded ? "▲ 접기" : `+ ${hiddenCount}개 더 보기`;
-  };
-
   document.getElementById("filter-toggle").addEventListener("click", () => {
-    expanded = !expanded;
-    applyExpanded();
+    filtersExpanded = !filtersExpanded;
+    layoutFilterChips();
   });
+  layoutFilterChips();
+}
 
-  applyExpanded();
+function toggleFilterChip(group, value) {
+  if (group === "all") {
+    selectedFilters.kind.clear();
+    selectedFilters.brand.clear();
+    selectedFilters.region.clear();
+    selectedFilters.venue.clear();
+    currentSearch = "";
+    const input = document.getElementById("search-input");
+    if (input) input.value = "";
+  } else if (selectedFilters[group].has(value)) {
+    selectedFilters[group].delete(value);
+  } else {
+    selectedFilters[group].add(value);
+  }
+  syncFilterChipStates();
+  applyFilters();
+}
+
+function syncFilterChipStates() {
+  document.querySelectorAll("#filter-bar .filter-chip").forEach((button) => {
+    const group = button.dataset.group;
+    const value = button.dataset.value;
+    const active = group === "all"
+      ? selectedFilters.kind.size + selectedFilters.brand.size + selectedFilters.region.size + selectedFilters.venue.size === 0
+      : selectedFilters[group].has(value);
+    button.classList.toggle("active", active);
+  });
+}
+
+function layoutFilterChips() {
+  const bar = document.getElementById("filter-bar");
+  const toggle = document.getElementById("filter-toggle");
+  if (!bar || !toggle) return;
+  const chips = [...bar.querySelectorAll(".filter-chip")];
+  chips.forEach((chip) => { chip.hidden = false; });
+  bar.classList.toggle("expanded", filtersExpanded);
+  if (!chips.length) {
+    toggle.hidden = true;
+    return;
+  }
+  if (filtersExpanded) {
+    toggle.hidden = false;
+    toggle.textContent = "접기";
+    return;
+  }
+  toggle.hidden = false;
+  toggle.textContent = "더 보기";
+  const firstTop = chips[0].offsetTop;
+  const wrapped = (el) => el.offsetTop > firstTop + 6;
+  let guard = 0;
+  while ((chips.some((chip) => !chip.hidden && wrapped(chip)) || wrapped(toggle)) && guard < chips.length) {
+    const visible = chips.filter((chip) => !chip.hidden);
+    const overflow = [...visible].reverse().find((chip) => wrapped(chip));
+    const last = overflow || visible[visible.length - 1];
+    if (!last || last === chips[0]) break;
+    last.hidden = true;
+    guard += 1;
+  }
+  const hiddenCount = chips.filter((chip) => chip.hidden).length;
+  toggle.hidden = hiddenCount === 0;
+  if (hiddenCount > 0) toggle.textContent = `+${hiddenCount}`;
+}
+
+window.addEventListener("resize", () => layoutFilterChips());
+
+function placeMatchesSearch(place, query) {
+  if (!query) return true;
+  const venue = VENUE_TYPES.find((item) => item.id === placeVenue(place));
+  const kinds = [...placeKindIds(place)].map((id) => DRINK_KINDS.find((kind) => kind.id === id)?.label || "");
+  const haystack = [
+    place.name,
+    place.address,
+    placeRegion(place),
+    venue?.label || "",
+    ...(place.brands || []),
+    ...kinds,
+  ].join(" ").toLowerCase();
+  return haystack.includes(query);
 }
 
 function getFilteredPlaces() {
-  return places.filter((p) => {
-    const matchesBrand = selectedBrands.size === 0 || (p.brands || []).some((b) => selectedBrands.has(b));
-    const q = currentSearch;
-    const matchesSearch =
-      !q ||
-      p.name.toLowerCase().includes(q) ||
-      p.address.toLowerCase().includes(q) ||
-      (p.brands || []).some((b) => b.toLowerCase().includes(q));
-    return matchesBrand && matchesSearch;
+  return places.filter((place) => {
+    const kinds = placeKindIds(place);
+    const matchesKind = selectedFilters.kind.size === 0 || [...selectedFilters.kind].some((id) => kinds.has(id));
+    const matchesBrand = selectedFilters.brand.size === 0 || (place.brands || []).some((brand) => selectedFilters.brand.has(brand));
+    const matchesRegion = selectedFilters.region.size === 0 || selectedFilters.region.has(placeRegion(place));
+    const matchesVenue = selectedFilters.venue.size === 0 || selectedFilters.venue.has(placeVenue(place));
+    return matchesKind && matchesBrand && matchesRegion && matchesVenue && placeMatchesSearch(place, currentSearch);
   });
 }
 
@@ -949,7 +1182,7 @@ function updateFilterStatus(shownCount) {
   const el = document.getElementById("filter-status");
   if (!el) return;
 
-  const hasFilter = selectedBrands.size > 0 || currentSearch;
+  const hasFilter = hasActiveFilter();
   if (!hasFilter) {
     el.style.display = "none";
     updateCount(places.length);
@@ -957,7 +1190,16 @@ function updateFilterStatus(shownCount) {
   }
 
   const parts = [];
-  selectedBrands.forEach((b) => parts.push(`<span class="fs-tag">🏷️ ${escapeHtml(b)}</span>`));
+  selectedFilters.kind.forEach((id) => {
+    const kind = DRINK_KINDS.find((item) => item.id === id);
+    if (kind) parts.push(`<span class="fs-tag">${kind.icon} ${escapeHtml(kind.label)}</span>`);
+  });
+  selectedFilters.brand.forEach((brand) => parts.push(`<span class="fs-tag">🏷️ ${escapeHtml(brand)}</span>`));
+  selectedFilters.region.forEach((region) => parts.push(`<span class="fs-tag">📍 ${escapeHtml(region)}</span>`));
+  selectedFilters.venue.forEach((id) => {
+    const venue = VENUE_TYPES.find((item) => item.id === id);
+    if (venue) parts.push(`<span class="fs-tag">${venue.icon} ${escapeHtml(venue.label)}</span>`);
+  });
   if (currentSearch) parts.push(`<span class="fs-tag">🔍 "${escapeHtml(currentSearch)}"</span>`);
 
   el.innerHTML = `
@@ -970,13 +1212,14 @@ function updateFilterStatus(shownCount) {
 }
 
 function clearFilters() {
-  selectedBrands.clear();
+  selectedFilters.kind.clear();
+  selectedFilters.brand.clear();
+  selectedFilters.region.clear();
+  selectedFilters.venue.clear();
   currentSearch = "";
-  document.getElementById("search-input").value = "";
-  document.querySelectorAll("#brand-filter .filter-chip").forEach((c) => {
-    c.classList.toggle("active", c.dataset.brand === "전체");
-  });
-
+  const input = document.getElementById("search-input");
+  if (input) input.value = "";
+  syncFilterChipStates();
   applyFilters();
 }
 
@@ -1468,7 +1711,7 @@ function cleanDescription(str) {
 
 window.onload = function () {
   initFirebase();
-  initBrandFilter();
+  renderFilterBar();
   initReportModal();
   initSearchToggle();
   initMobileTopbar();
@@ -1507,9 +1750,14 @@ function initSearchToggle() {
     }
   }
 
-  if (btn) btn.addEventListener("click", () => setOpen(!section.classList.contains("open")));
-  if (mobilePill) mobilePill.addEventListener("click", () => setOpen(!section.classList.contains("open")));
-  if (mobileFilterPill) mobileFilterPill.addEventListener("click", () => setOpen(!section.classList.contains("open")));
+  const focusSearch = () => {
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.scrollTop = 0;
+    document.getElementById("search-input")?.focus();
+  };
+  if (btn) btn.addEventListener("click", focusSearch);
+  if (mobilePill) mobilePill.addEventListener("click", focusSearch);
+  if (mobileFilterPill) mobileFilterPill.addEventListener("click", focusSearch);
   if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
   if (backdrop) backdrop.addEventListener("click", () => setOpen(false));
   if (doSearchBtn) doSearchBtn.addEventListener("click", () => {

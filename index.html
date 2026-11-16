@@ -155,15 +155,15 @@
       <input
         id="search-input"
         type="search"
-        placeholder="논알콜 맥주 판매 가게 검색, 맥주 브랜드 검색"
-        aria-label="가게 이름, 주소, 맥주 브랜드 검색"
+        placeholder="가게, 주소, 지역, 브랜드"
+        aria-label="가게 이름, 주소, 지역, 브랜드 검색"
       />
       <div id="abv-guide">
         <span class="abv-item"><b>0.00%</b> 완전 무알콜</span>
         <span class="abv-divider">·</span>
         <span class="abv-item"><b>0.0%</b> 0.1~1% 미만</span>
       </div>
-      <div id="brand-filter"></div>
+      <div id="filter-bar" aria-label="가게 필터"></div>
       <button type="button" id="btn-do-search" class="btn-do-search">🔍 검색하기</button>
     </div>
     <div id="filter-status"></div>
@@ -498,6 +498,9 @@
 <div id="toast"></div>
 
 <!-- ─── 앱 JS ─── -->
+<script src="analytics.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+<script src="curated-places.js"></script>
 <script src="app.js"></script>
 
 </body>
