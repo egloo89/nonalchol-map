@@ -1855,7 +1855,7 @@ input:focus-visible,
   cursor: pointer;
 }
 .install-btn:active { transform: scale(0.98); }
-#install-btn-kakao { background: #fee500; color: #191919; }
+#install-btn-open.kakao { background: #fee500; color: #191919; }
 .install-steps {
   margin-top: 14px;
   padding: 12px 14px;

@@ -1795,19 +1795,24 @@ function todayKey() {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
-// 지도·이미지 로딩(window.onload)을 기다리지 않고 화면 구조가 준비되면 바로 띄운다
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => { initWelcomePopup(); initInstallBanner(); });
-} else {
-  initWelcomePopup();
-  initInstallBanner();
-}
-
 // ─── 홈 화면에 추가 (PWA 설치) 안내 ─────────────────
 const INSTALL_SNOOZE_KEY = "nonmap-install-snooze-until";
 const INSTALL_DONE_KEY = "nonmap-installed";
 const INSTALL_SNOOZE_DAYS = 7;
+const INSTALL_HANDOFF_PARAM = "nonmap_install";
 let deferredInstallPrompt = null;
+
+// 카톡·네이버·인스타 안에서 "브라우저로 열기"로 넘어온 경우: 첫 방문 팝업을 건너뛰고 설치 안내를 바로 띄운다
+const INSTALL_HANDOFF = (() => {
+  try {
+    const url = new URL(location.href);
+    if (!url.searchParams.has(INSTALL_HANDOFF_PARAM)) return false;
+    url.searchParams.delete(INSTALL_HANDOFF_PARAM);
+    url.searchParams.delete("openExternalBrowser");
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
+    return true;
+  } catch (e) { return false; }
+})();
 
 // 안드로이드 크롬·삼성 인터넷: 설치 가능해지면 브라우저가 이 이벤트를 준다 (일찍 받아둬야 함)
 window.addEventListener("beforeinstallprompt", (event) => {
@@ -1834,11 +1839,42 @@ function detectInstallEnv() {
   const ua = navigator.userAgent || "";
   const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const isAndroid = /Android/i.test(ua);
-  if (/KAKAOTALK/i.test(ua)) return "kakao";
-  if (/NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|BAND\//i.test(ua)) return "inapp";
-  if (isIOS) return "ios";
-  if (isAndroid) return "android";
-  return "other";
+  const inApps = [
+    [/KAKAOTALK/i, "카카오톡", "kakao"],
+    [/NAVER\(inapp/i, "네이버 앱"],
+    [/Instagram/i, "인스타그램"],
+    [/FBAN|FBAV/i, "페이스북"],
+    [/Line\//i, "라인", "line"],
+    [/BAND\//i, "밴드"],
+    [/DaumApps/i, "다음 앱"],
+    [/everytimeApp/i, "에브리타임"],
+  ];
+  for (const [re, appName, kind] of inApps) {
+    if (re.test(ua)) return { type: "inapp", appName, kind: kind || "generic", isIOS, isAndroid };
+  }
+  if (isIOS) return { type: "ios", isIOS, isAndroid };
+  if (isAndroid) return { type: "android", isIOS, isAndroid };
+  return { type: "other", isIOS, isAndroid };
+}
+
+// 앱 안 브라우저에서 휴대폰의 진짜 브라우저로 넘긴다 (넘어간 쪽에서 설치 안내가 바로 뜨도록 표시를 붙인다)
+function openInExternalBrowser(env) {
+  const target = new URL(location.href);
+  target.searchParams.set(INSTALL_HANDOFF_PARAM, "1");
+  const targetUrl = target.toString();
+  if (env.kind === "kakao") {
+    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(targetUrl);
+  } else if (env.kind === "line") {
+    target.searchParams.set("openExternalBrowser", "1");
+    location.href = target.toString();
+  } else if (env.isAndroid) {
+    const noScheme = targetUrl.replace(/^https?:\/\//, "");
+    location.href = "intent://" + noScheme +
+      "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
+      encodeURIComponent(targetUrl) + ";end";
+  } else if (env.isIOS) {
+    location.href = targetUrl.replace(/^https:\/\//, "x-safari-https://");
+  }
 }
 
 function initInstallBanner() {
@@ -1852,15 +1888,15 @@ function initInstallBanner() {
   try {
     if (localStorage.getItem(INSTALL_DONE_KEY)) return;
     const until = Number(localStorage.getItem(INSTALL_SNOOZE_KEY) || 0);
-    if (until && Date.now() < until) return;
+    if (!INSTALL_HANDOFF && until && Date.now() < until) return;
   } catch (e) {}
 
   const env = detectInstallEnv();
-  if (env === "other") return;
+  if (env.type === "other") return;
 
   const sub = document.getElementById("install-sub");
   const showOnly = (id) => {
-    ["install-btn-android", "install-btn-kakao", "install-steps-ios", "install-steps-menu", "install-steps-inapp"]
+    ["install-btn-android", "install-btn-open", "install-steps-ios", "install-steps-menu", "install-steps-inapp"]
       .forEach((x) => { const el = document.getElementById(x); if (el) el.hidden = x !== id; });
   };
 
@@ -1878,12 +1914,11 @@ function initInstallBanner() {
   }
 
   function configure() {
-    if (env === "kakao") {
-      showOnly("install-btn-kakao");
-      if (sub) sub.textContent = "카카오톡 안에서는 홈 화면 추가가 안 돼요";
-    } else if (env === "inapp") {
-      showOnly("install-steps-inapp");
-    } else if (env === "ios") {
+    if (env.type === "inapp") {
+      showOnly("install-btn-open");
+      document.getElementById("install-btn-open")?.classList.toggle("kakao", env.kind === "kakao");
+      if (sub) sub.textContent = `${env.appName} 안에서는 홈 화면 추가가 안 돼요. 버튼을 누르면 브라우저로 넘어가요`;
+    } else if (env.type === "ios") {
       showOnly("install-steps-ios");
     } else if (deferredInstallPrompt) {
       showOnly("install-btn-android");
@@ -1894,8 +1929,19 @@ function initInstallBanner() {
 
   document.getElementById("install-close")?.addEventListener("click", () => hide(true));
   document.getElementById("install-later")?.addEventListener("click", () => hide(true));
-  document.getElementById("install-btn-kakao")?.addEventListener("click", () => {
-    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+  document.getElementById("install-btn-open")?.addEventListener("click", () => {
+    let left = false;
+    const markLeft = () => { left = true; };
+    document.addEventListener("visibilitychange", markLeft, { once: true });
+    window.addEventListener("pagehide", markLeft, { once: true });
+    openInExternalBrowser(env);
+    // 1.5초 뒤에도 화면이 그대로면 넘어가지 못한 것: 메뉴로 여는 방법을 함께 보여준다
+    setTimeout(() => {
+      if (!left && !document.hidden) {
+        const steps = document.getElementById("install-steps-inapp");
+        if (steps) steps.hidden = false;
+      }
+    }, 1500);
   });
   document.getElementById("install-btn-android")?.addEventListener("click", async () => {
     if (!deferredInstallPrompt) { showOnly("install-steps-menu"); return; }
@@ -1913,13 +1959,14 @@ function initInstallBanner() {
     } catch (e) { hide(true); }
   });
   // 배너가 떠 있는 동안 설치 가능 신호가 오면 버튼으로 바꿔준다
-  document.addEventListener("nonmap:installable", () => { if (env === "android") configure(); });
+  document.addEventListener("nonmap:installable", () => { if (env.type === "android") configure(); });
 
-  // 첫 방문 팝업이 닫힌 뒤에 띄운다 (겹치지 않게)
+  // 첫 방문 팝업이 닫힌 뒤에 띄운다 (겹치지 않게). 브라우저로 넘어온 경우는 팝업 없이 바로.
   const welcome = document.getElementById("welcome-overlay");
   const start = () => {
     // 안드로이드는 설치 가능 신호를 잠깐 기다렸다가 버튼/메뉴 안내 중 하나를 고른다
-    setTimeout(() => { configure(); show(); }, env === "android" ? 2500 : 1200);
+    const wait = env.type === "android" ? (INSTALL_HANDOFF ? 1500 : 2500) : (INSTALL_HANDOFF ? 300 : 1200);
+    setTimeout(() => { configure(); show(); }, wait);
   };
   if (welcome && welcome.classList.contains("active")) {
     const obs = new MutationObserver(() => {
@@ -1931,6 +1978,14 @@ function initInstallBanner() {
   }
 }
 
+// 지도·이미지 로딩(window.onload)을 기다리지 않고 화면 구조가 준비되면 바로 띄운다
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => { initWelcomePopup(); initInstallBanner(); });
+} else {
+  initWelcomePopup();
+  initInstallBanner();
+}
+
 function initWelcomePopup() {
   const overlay = document.getElementById("welcome-overlay");
   if (!overlay || overlay.dataset.ready) return;
@@ -1938,7 +1993,7 @@ function initWelcomePopup() {
 
   let hiddenDate = null;
   try { hiddenDate = localStorage.getItem(WELCOME_HIDE_KEY); } catch (e) {}
-  if (hiddenDate === todayKey()) return;
+  if (hiddenDate === todayKey() || INSTALL_HANDOFF) return;
 
   const skip = document.getElementById("welcome-skip-today");
 
