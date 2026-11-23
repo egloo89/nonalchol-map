@@ -541,10 +541,12 @@ body {
   white-space: nowrap;
 }
 
-.filter-chip:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: #eff6ff;
+@media (hover: hover) {
+  .filter-chip:hover:not(.active) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #eff6ff;
+  }
 }
 .filter-chip:active { transform: scale(0.97); }
 .filter-chip.active {
@@ -571,10 +573,12 @@ body {
   flex: 0 0 auto;
 }
 
+@media (hover: hover) {
 #filter-toggle:hover {
   background: #eff6ff;
   border-color: var(--primary);
   color: var(--primary);
+}
 }
 
 /* ─── 필터 상태 바 ─── */
@@ -1032,7 +1036,10 @@ body {
   user-select: none;
 }
 
-.brand-checkbox:hover { border-color: var(--accent); background: #f0fdf4; }
+/* 마우스가 있는 기기에서만 hover 색을 준다. 휴대폰은 탭한 뒤에도 hover 가 남아서 선택이 안 풀린 것처럼 보였다 */
+@media (hover: hover) {
+  .brand-checkbox:hover { border-color: var(--accent); background: #f0fdf4; }
+}
 .brand-checkbox input[type="checkbox"] { display: none; }
 
 .brand-checkbox.checked {
