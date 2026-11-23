@@ -1797,9 +1797,138 @@ function todayKey() {
 
 // 지도·이미지 로딩(window.onload)을 기다리지 않고 화면 구조가 준비되면 바로 띄운다
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initWelcomePopup);
+  document.addEventListener("DOMContentLoaded", () => { initWelcomePopup(); initInstallBanner(); });
 } else {
   initWelcomePopup();
+  initInstallBanner();
+}
+
+// ─── 홈 화면에 추가 (PWA 설치) 안내 ─────────────────
+const INSTALL_SNOOZE_KEY = "nonmap-install-snooze-until";
+const INSTALL_DONE_KEY = "nonmap-installed";
+const INSTALL_SNOOZE_DAYS = 7;
+let deferredInstallPrompt = null;
+
+// 안드로이드 크롬·삼성 인터넷: 설치 가능해지면 브라우저가 이 이벤트를 준다 (일찍 받아둬야 함)
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  document.dispatchEvent(new Event("nonmap:installable"));
+});
+window.addEventListener("appinstalled", () => {
+  try { localStorage.setItem(INSTALL_DONE_KEY, "1"); } catch (e) {}
+  document.getElementById("install-banner")?.classList.remove("show");
+});
+
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
+function isStandaloneApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function detectInstallEnv() {
+  const ua = navigator.userAgent || "";
+  const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+  if (/KAKAOTALK/i.test(ua)) return "kakao";
+  if (/NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|everytimeApp|BAND\//i.test(ua)) return "inapp";
+  if (isIOS) return "ios";
+  if (isAndroid) return "android";
+  return "other";
+}
+
+function initInstallBanner() {
+  const banner = document.getElementById("install-banner");
+  if (!banner || banner.dataset.ready) return;
+  banner.dataset.ready = "1";
+
+  // 휴대폰에서만, 이미 앱으로 열었거나 설치했으면 안 띄운다
+  const isMobile = window.matchMedia("(max-width: 640px)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!isMobile || isStandaloneApp()) return;
+  try {
+    if (localStorage.getItem(INSTALL_DONE_KEY)) return;
+    const until = Number(localStorage.getItem(INSTALL_SNOOZE_KEY) || 0);
+    if (until && Date.now() < until) return;
+  } catch (e) {}
+
+  const env = detectInstallEnv();
+  if (env === "other") return;
+
+  const sub = document.getElementById("install-sub");
+  const showOnly = (id) => {
+    ["install-btn-android", "install-btn-kakao", "install-steps-ios", "install-steps-menu", "install-steps-inapp"]
+      .forEach((x) => { const el = document.getElementById(x); if (el) el.hidden = x !== id; });
+  };
+
+  function hide(snooze) {
+    banner.classList.remove("show");
+    banner.setAttribute("aria-hidden", "true");
+    if (snooze) {
+      try { localStorage.setItem(INSTALL_SNOOZE_KEY, String(Date.now() + INSTALL_SNOOZE_DAYS * 86400000)); } catch (e) {}
+    }
+  }
+  function show() {
+    if (isStandaloneApp()) return;
+    banner.classList.add("show");
+    banner.setAttribute("aria-hidden", "false");
+  }
+
+  function configure() {
+    if (env === "kakao") {
+      showOnly("install-btn-kakao");
+      if (sub) sub.textContent = "카카오톡 안에서는 홈 화면 추가가 안 돼요";
+    } else if (env === "inapp") {
+      showOnly("install-steps-inapp");
+    } else if (env === "ios") {
+      showOnly("install-steps-ios");
+    } else if (deferredInstallPrompt) {
+      showOnly("install-btn-android");
+    } else {
+      showOnly("install-steps-menu");
+    }
+  }
+
+  document.getElementById("install-close")?.addEventListener("click", () => hide(true));
+  document.getElementById("install-later")?.addEventListener("click", () => hide(true));
+  document.getElementById("install-btn-kakao")?.addEventListener("click", () => {
+    location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.href);
+  });
+  document.getElementById("install-btn-android")?.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) { showOnly("install-steps-menu"); return; }
+    const promptEvent = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    promptEvent.prompt();
+    try {
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === "accepted") {
+        try { localStorage.setItem(INSTALL_DONE_KEY, "1"); } catch (e) {}
+        hide(false);
+      } else {
+        hide(true);
+      }
+    } catch (e) { hide(true); }
+  });
+  // 배너가 떠 있는 동안 설치 가능 신호가 오면 버튼으로 바꿔준다
+  document.addEventListener("nonmap:installable", () => { if (env === "android") configure(); });
+
+  // 첫 방문 팝업이 닫힌 뒤에 띄운다 (겹치지 않게)
+  const welcome = document.getElementById("welcome-overlay");
+  const start = () => {
+    // 안드로이드는 설치 가능 신호를 잠깐 기다렸다가 버튼/메뉴 안내 중 하나를 고른다
+    setTimeout(() => { configure(); show(); }, env === "android" ? 2500 : 1200);
+  };
+  if (welcome && welcome.classList.contains("active")) {
+    const obs = new MutationObserver(() => {
+      if (!welcome.classList.contains("active")) { obs.disconnect(); start(); }
+    });
+    obs.observe(welcome, { attributes: true, attributeFilter: ["class"] });
+  } else {
+    start();
+  }
 }
 
 function initWelcomePopup() {

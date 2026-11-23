@@ -363,6 +363,41 @@
   </div>
 </div>
 
+<!-- ─── 홈 화면에 추가 안내 (모바일) ─── -->
+<div id="install-banner" role="dialog" aria-labelledby="install-title" aria-hidden="true">
+  <button type="button" class="install-close" id="install-close" aria-label="닫기">✕</button>
+  <div class="install-row">
+    <img src="icon-192.png" alt="" class="install-icon" width="48" height="48" />
+    <div class="install-text">
+      <p id="install-title">논알콜맵을 홈 화면에 추가하세요</p>
+      <p class="install-sub" id="install-sub">앱처럼 아이콘 한 번으로 바로 열려요</p>
+    </div>
+  </div>
+  <!-- 환경별 안내: JS 가 하나만 보이게 한다 -->
+  <button type="button" class="install-btn" id="install-btn-android" hidden>홈 화면에 추가</button>
+  <button type="button" class="install-btn" id="install-btn-kakao" hidden>브라우저로 열기</button>
+  <div class="install-steps" id="install-steps-ios" hidden>
+    <span class="step-num">1</span>
+    <span class="share-icon" aria-label="공유">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+    </span>
+    공유 버튼 누르기 <small class="step-hint">(안 보이면 <b>⋯</b> 버튼 → 공유)</small>
+    <br />
+    <span class="step-num">2</span> <b>홈 화면에 추가</b> 선택
+  </div>
+  <div class="install-steps" id="install-steps-menu" hidden>
+    <span class="step-num">1</span> 오른쪽 위(또는 아래) <b>⋮ 메뉴</b> 누르기
+    <br />
+    <span class="step-num">2</span> <b>홈 화면에 추가</b> 또는 <b>앱 설치</b> 선택
+  </div>
+  <div class="install-steps" id="install-steps-inapp" hidden>
+    지금 앱 안의 브라우저에서는 홈 화면 추가가 안 돼요.
+    <br />
+    메뉴에서 <b>다른 브라우저로 열기</b>를 누른 뒤 다시 시도해 주세요.
+  </div>
+  <button type="button" class="install-later" id="install-later">나중에</button>
+</div>
+
 <!-- ─── 시크릿 (개발자 소개) 모달 ─── -->
 <div id="secret-modal-overlay" class="modal-overlay" style="display:none;">
   <div class="modal secret-modal" role="dialog" aria-modal="true">

@@ -1779,6 +1779,137 @@ input:focus-visible,
 }
 .welcome-skip input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
 
+/* ─── 홈 화면에 추가 안내 배너 (모바일) ─── */
+#install-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 2400;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.28);
+  padding: 16px 16px 10px;
+  max-width: 440px;
+  margin: 0 auto;
+  transform: translateY(140%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+#install-banner.show {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.install-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+}
+.install-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 28px;
+}
+.install-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.install-text p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  word-break: keep-all;
+}
+.install-text .install-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #6b7280;
+}
+.install-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px;
+  border: 0;
+  border-radius: 12px;
+  background: #2563eb;
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.install-btn:active { transform: scale(0.98); }
+#install-btn-kakao { background: #fee500; color: #191919; }
+.install-steps {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f3f6fb;
+  font-size: 14px;
+  line-height: 2;
+  color: #374151;
+  word-break: keep-all;
+}
+.install-steps b { color: #111827; }
+.install-steps .step-hint { font-size: 12px; color: #6b7280; }
+.install-steps .step-hint b { color: #374151; }
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
+}
+.share-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 2px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #2563eb;
+  vertical-align: middle;
+}
+.install-later {
+  display: block;
+  margin: 8px auto 0;
+  padding: 6px 12px;
+  border: 0;
+  background: none;
+  color: #9ca3af;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+[hidden] { display: none !important; }
+
 /* ─── 시크릿 모달 ─── */
 #secret-modal-overlay {
   display: none;
