@@ -1779,8 +1779,51 @@ window.onload = function () {
   initReportModal();
   initSearchToggle();
   initMobileTopbar();
+  initWelcomePopup();
   // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };
+
+// ─── 첫 방문 안내 팝업 (오늘 하루 보지 않기) ───────
+const WELCOME_HIDE_KEY = "nonmap-welcome-hidden-date";
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function initWelcomePopup() {
+  const overlay = document.getElementById("welcome-overlay");
+  if (!overlay) return;
+
+  let hiddenDate = null;
+  try { hiddenDate = localStorage.getItem(WELCOME_HIDE_KEY); } catch (e) {}
+  if (hiddenDate === todayKey()) return;
+
+  const skip = document.getElementById("welcome-skip-today");
+
+  function close() {
+    if (skip && skip.checked) {
+      try { localStorage.setItem(WELCOME_HIDE_KEY, todayKey()); } catch (e) {}
+    }
+    overlay.classList.remove("active");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+
+  document.getElementById("welcome-close")?.addEventListener("click", close);
+  document.getElementById("welcome-find")?.addEventListener("click", close);
+  document.getElementById("welcome-shop")?.addEventListener("click", close);
+  document.getElementById("welcome-report")?.addEventListener("click", () => {
+    close();
+    openReportModal();
+  });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) close();
+  });
+
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+}
 
 // ─── 모바일: 검색/필터 섹션 토글 ───────────────────
 function initSearchToggle() {

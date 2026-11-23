@@ -1683,6 +1683,95 @@ input:focus-visible,
   }
 }
 
+/* ─── 첫 방문 안내 팝업 ─── */
+#welcome-overlay {
+  z-index: 2500;
+  align-items: center !important;
+  padding: 16px !important;
+}
+.welcome-card {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 380px;
+  padding: 28px 20px 18px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.2s;
+}
+#welcome-overlay.active .welcome-card { transform: none; }
+.welcome-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.welcome-logo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2563eb, #10b981);
+  color: #fff;
+  font-weight: 800;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.welcome-card h2 {
+  font-size: 19px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: #111827;
+}
+.welcome-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 18px;
+}
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.welcome-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: none;
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.15s;
+}
+.welcome-btn:hover { filter: brightness(1.05); }
+.welcome-btn:active { transform: scale(0.98); }
+.welcome-find { background: #2563eb; }
+.welcome-shop { background: #ff5722; }
+.welcome-report { background: #10b981; }
+.wb-icon { font-size: 24px; line-height: 1; }
+.wb-text { display: flex; flex-direction: column; gap: 2px; }
+.wb-text b { font-size: 16px; font-weight: 700; }
+.wb-text small { font-size: 12px; opacity: 0.9; }
+.welcome-skip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  cursor: pointer;
+  user-select: none;
+}
+.welcome-skip input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
+
 /* ─── 시크릿 모달 ─── */
 #secret-modal-overlay {
   display: none;

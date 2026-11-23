@@ -335,6 +335,34 @@
   </div>
 </div>
 
+<!-- ─── 첫 방문 안내 팝업 ─── -->
+<div id="welcome-overlay" class="modal-overlay" aria-hidden="true">
+  <div class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+    <button type="button" class="modal-close welcome-close" id="welcome-close" aria-label="닫기">✕</button>
+    <div class="welcome-logo">NON</div>
+    <h2 id="welcome-title">논알콜맵에 오신 걸 환영해요</h2>
+    <p class="welcome-sub">무엇을 하시겠어요?</p>
+    <div class="welcome-actions">
+      <button type="button" class="welcome-btn welcome-find" id="welcome-find">
+        <span class="wb-icon">🔍</span>
+        <span class="wb-text"><b>논알콜 가게 찾기</b><small>지도에서 바로 찾아보기</small></span>
+      </button>
+      <a href="shop.html" class="welcome-btn welcome-shop" id="welcome-shop">
+        <span class="wb-icon">🛒</span>
+        <span class="wb-text"><b>논알콜 구입</b><small>인기 논알콜 음료 둘러보기</small></span>
+      </a>
+      <button type="button" class="welcome-btn welcome-report" id="welcome-report">
+        <span class="wb-icon">📢</span>
+        <span class="wb-text"><b>가게 제보</b><small>아는 논알콜 가게 알려주기</small></span>
+      </button>
+    </div>
+    <label class="welcome-skip">
+      <input type="checkbox" id="welcome-skip-today" />
+      오늘 하루 보지 않기
+    </label>
+  </div>
+</div>
+
 <!-- ─── 시크릿 (개발자 소개) 모달 ─── -->
 <div id="secret-modal-overlay" class="modal-overlay" style="display:none;">
   <div class="modal secret-modal" role="dialog" aria-modal="true">
