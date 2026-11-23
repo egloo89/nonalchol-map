@@ -764,7 +764,14 @@ body {
   min-width: 240px;
   max-width: 300px;
   position: relative;
+  box-sizing: border-box;
+  /* 카카오 오버레이 래퍼의 nowrap 을 끊고, 한글은 단어 단위로 줄바꿈 */
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
+
+.info-window .iw-name { padding-right: 28px; }
 
 .iw-close {
   position: absolute;
