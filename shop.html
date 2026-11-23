@@ -90,92 +90,106 @@
       padding: 3px 11px; border-radius: 999px;
     }
 
-    /* ── 상품 카드 ── */
+    /* ── 상품 목록: 가로로 긴 줄을 같은 폭으로 쭉 쌓는다 ── */
     .grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
     .product {
-      display: flex; flex-direction: column;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 10px 12px 10px 10px;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 16px;
-      overflow: hidden;
       text-decoration: none;
       color: inherit;
       transition: transform 0.12s, box-shadow 0.12s;
     }
-    .product:active { transform: scale(0.98); }
+    .product:active { transform: scale(0.99); }
     @media (hover: hover) {
-      .product:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.08); transform: translateY(-2px); }
-    }
-    .product .thumb {
-      position: relative;
-      aspect-ratio: 1 / 1;
-      background: linear-gradient(135deg, #eef2ff, #e0f2f1);
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-    }
-    .product .thumb img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
-    .product .thumb .ph { font-size: 46px; opacity: 0.55; }
-
-    /* 쿠팡 배너 이미지: 상품 사진 부분만 보이도록 크롭 (로고/버튼 숨김) */
-    .product.has-img .thumb { background: #fff; }
-    .product.has-img .thumb img {
-      object-fit: cover;
-      object-position: center 30%;
-      image-rendering: auto;
-    }
-    .product .num {
-      position: absolute; top: 8px; left: 8px;
-      background: var(--primary);
-      color: #fff;
-      font-size: 12px; font-weight: 800;
-      min-width: 24px; height: 24px;
-      border-radius: 999px;
-      display: flex; align-items: center; justify-content: center;
-      padding: 0 7px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-    }
-    .product .body {
-      flex: 1;
-      display: flex; flex-direction: column;
-      padding: 10px 11px 12px;
-    }
-    .product .name {
-      font-size: 13px; font-weight: 600;
-      line-height: 1.35;
-      margin-bottom: 6px;
-      word-break: keep-all;
-      overflow-wrap: break-word;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .product .price {
-      font-size: 13.5px;
-      font-weight: 800;
-      color: #111827;
-      margin-bottom: 8px;
-      letter-spacing: -0.01em;
+      .product:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.08); transform: translateY(-1px); }
     }
     .product:focus-visible {
       outline: 2px solid var(--primary);
       outline-offset: 3px;
     }
+
+    /* 번호 */
+    .product .num {
+      flex: 0 0 auto;
+      min-width: 30px;
+      height: 30px;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    /* 이미지: 모든 줄이 같은 크기. 원본이 작아서 크게 늘리지 않는다 */
+    .product .thumb {
+      flex: 0 0 auto;
+      width: 112px;
+      aspect-ratio: 5 / 4;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid #f1f3f7;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .product .thumb img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+    }
+    /* 쿠팡 배너(240×480: 로고·상품·이름·버튼이 세로로 든 이미지)는 상품 사진 부분만 보이게 자른다 */
+    .product .thumb img.banner {
+      object-fit: cover;
+      object-position: center 24%;
+    }
+    .product .thumb .ph { font-size: 38px; opacity: 0.55; }
+
+    .product .body {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: flex; flex-direction: column;
+      gap: 4px;
+    }
+    .product .name {
+      font-size: 14.5px; font-weight: 600;
+      line-height: 1.4;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .product .price {
+      font-size: 15px;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.01em;
+    }
     .product .buy {
-      margin-top: auto;
-      text-align: center;
+      align-self: flex-start;
+      margin-top: 2px;
       background: var(--coupang);
       color: #fff;
       font-size: 12.5px; font-weight: 700;
-      padding: 8px 6px;
-      border-radius: 9px;
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+    @media (min-width: 560px) {
+      .product { gap: 16px; padding: 12px 16px 12px 12px; }
+      .product .thumb { width: 150px; }
+      .product .name { font-size: 15.5px; }
     }
 
     /* ── 면책 고지 ── */
@@ -325,20 +339,28 @@
       return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
 
+    // 쿠팡 썸네일은 주소 안의 크기만 바꾸면 더 큰 이미지를 준다 (212px → 492px)
+    function sharperImage(url) {
+      return String(url).replace("/thumbnails/remote/212x212ex/", "/thumbnails/remote/492x492ex/");
+    }
+    function isBanner(url) {
+      return String(url).includes("/image/affiliate/banner/");
+    }
+
     function render() {
       let n = 0;
       const html = SHOP.map((cat) => {
         const cards = cat.items.map((p) => {
           n += 1;
           const thumb = p.img
-            ? `<img src="${escapeHtml(p.img)}" alt="" loading="lazy" decoding="async" />`
+            ? `<img src="${escapeHtml(sharperImage(p.img))}"${isBanner(p.img) ? ' class="banner"' : ""} alt="" loading="lazy" decoding="async" />`
             : `<span class="ph">${PLACEHOLDER[cat.emoji] || "🥤"}</span>`;
           const price = p.price ? `<div class="price">${escapeHtml(p.price)}</div>` : "";
           const label = `${n}번. ${p.name}${p.price ? ", " + p.price : ""}. 쿠팡에서 구매하기`;
           return `
             <a class="product${p.img ? " has-img" : ""}" href="${escapeHtml(p.url)}" target="_blank" rel="noopener sponsored" aria-label="${escapeHtml(label)}">
+              <span class="num">${n}</span>
               <div class="thumb">
-                <span class="num">${n}</span>
                 ${thumb}
               </div>
               <div class="body">
