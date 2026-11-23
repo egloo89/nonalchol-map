@@ -57,6 +57,8 @@ const BRAND_ICONS = {
   "논알콜 맥주 (종류 무관)": "🍻",
   "논알콜 칵테일 (종류 무관)": "🍹",
   "논알콜 와인 (종류 무관)": "🍷",
+  "논알콜 하이볼 (종류 무관)": "🥃",
+  "논알콜 사와 (종류 무관)": "🍋",
   "하이트 제로 (0.00)": "🟠",
   "카스 제로 (0.0)": "🔵",
   "클라우드 클리어 제로": "🟡",
@@ -79,7 +81,9 @@ const BRAND_COLORS = {
   "논알콜 맥주 (종류 무관)":      { bg: "#fef3c7", color: "#92400e", border: "#fcd34d" },
   "논알콜 칵테일 (종류 무관)":    { bg: "#f3e8ff", color: "#6b21a8", border: "#d8b4fe" },
   "논알콜 와인 (종류 무관)":      { bg: "#fce7f3", color: "#9d174d", border: "#f9a8d4" },
-  "카스 제로 (0.0)":              { bg: "#dbeafe", color: "#1e40af", border: "#93c5fd" },
+  "논알콜 하이볼 (종류 무관)":    { bg: "#fef3e2", color: "#9a5b13", border: "#f5c27a" },
+  "논알콜 사와 (종류 무관)":      { bg: "#f7fee7", color: "#3f6212", border: "#bef264" },
+  "카스 제로 (0.0)":             { bg: "#dbeafe", color: "#1e40af", border: "#93c5fd" },
   "하이네켄 제로 (0.0)":          { bg: "#dcfce7", color: "#166534", border: "#86efac" },
   "하이트 제로 (0.00)":           { bg: "#ffedd5", color: "#9a3412", border: "#fdba74" },
   "클라우드 클리어 제로":          { bg: "#fef9c3", color: "#854d0e", border: "#fde047" },
@@ -124,6 +128,7 @@ const GENERIC_BRANDS = new Set([
   "논알콜 와인 (종류 무관)",
   "논알콜 칵테일 (종류 무관)",
   "논알콜 사와 (종류 무관)",
+  "논알콜 하이볼 (종류 무관)",
 ]);
 
 const VENUE_TYPES = [
