@@ -26,8 +26,8 @@ let isMapBlocked = false;
 let scheduleMapLayout = function () {};
 let mapAdjusting = false;
 
-const NON_PIN_WIDTH_PX = 44;
-const NON_PIN_HEIGHT_PX = 52;
+const NON_PIN_WIDTH_PX = 31;
+const NON_PIN_HEIGHT_PX = 37;
 const MIN_MAP_EDGE_PX = 1;
 const MAP_READY_FALLBACK_MS = 8000;
 
@@ -957,17 +957,12 @@ function renderMarkers(filtered) {
 
   console.log(`[renderMarkers] 표시된 마커 ${validCount}개 / 전체 ${list.length}개`);
 
-  // 첫 로드 시 모든 마커가 보이도록 지도 범위 자동 조정
+  // 첫 로드 시 전국이 아니라 서울 지역이 보이도록 고정
   if (validCount > 0 && !hasFitBounds) {
-    // 카카오맵 컨테이너 크기 계산 타이밍 보정 후 범위 적용
     setTimeout(() => {
       map.relayout();
-      if (validCount === 1 && lastPos) {
-        map.setCenter(lastPos);
-        map.setLevel(4);
-      } else {
-        map.setBounds(bounds);
-      }
+      map.setCenter(new kakao.maps.LatLng(37.5565, 126.978));
+      map.setLevel(8);
     }, 200);
     hasFitBounds = true;
   }
@@ -976,7 +971,8 @@ function renderMarkers(filtered) {
 function buildInfoWindowContent(place) {
   const brandsHtml = (place.brands || []).map(brandTagHtml).join("");
 
-  const naverUrl = "https://map.naver.com/p/search/" + encodeURIComponent(place.name || "");
+  const naverQuery = [place.name, place.address].filter(Boolean).join(" ");
+  const naverUrl = "https://map.naver.com/p/search/" + encodeURIComponent(naverQuery);
 
   return `
     <div class="info-window">
@@ -1611,7 +1607,7 @@ function initReportModal() {
     const naverLink = document.getElementById("spc-naver-link");
     if (naverLink) {
       const q = encodeURIComponent((place.place_name || "") + " " + addr);
-      naverLink.href = "https://map.naver.com/p/search/" + encodeURIComponent(place.place_name || "");
+      naverLink.href = "https://map.naver.com/p/search/" + q;
     }
 
     document.getElementById("report-selected-card").style.display = "block";
