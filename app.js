@@ -804,7 +804,7 @@ function buildPoiContent(place) {
       <button class="iw-close">✕</button>
       <div class="iw-name">${name}</div>
       ${category ? `<div class="iw-category">${category}</div>` : ""}
-      <div class="iw-address">📍 ${address}</div>
+      <div class="iw-address">📍 ${keepNumbersTogether(address)}</div>
       ${phone ? `<div class="iw-meta">📞 ${phone}</div>` : ""}
       ${url ? `<div class="iw-meta"><a href="${url}" target="_blank" rel="noopener">카카오맵에서 보기 →</a></div>` : ""}
       <button class="btn-register-nonalcohol">🍺 논알콜 등록하기</button>
@@ -983,7 +983,7 @@ function buildInfoWindowContent(place) {
     <div class="info-window">
       <button type="button" class="iw-close" aria-label="정보창 닫기">✕</button>
       <div class="iw-name">${escapeHtml(place.name)}</div>
-      <div class="iw-address">📍 ${escapeHtml(place.address)}</div>
+      <div class="iw-address">📍 ${keepNumbersTogether(escapeHtml(place.address))}</div>
       ${brandsHtml ? `<div class="iw-brands">${brandsHtml}</div>` : ""}
       ${cleanDescription(place.description) ? `<div class="iw-desc">${escapeHtml(cleanDescription(place.description))}</div>` : ""}
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
@@ -1750,6 +1750,11 @@ function isAnyModalOpen() {
 }
 
 // ─── 유틸 ─────────────────────────────────────────
+
+// 이미 이스케이프된 주소에서 "23-10" 같은 번지가 줄바꿈으로 쪼개지지 않게 묶는다
+function keepNumbersTogether(escaped) {
+  return String(escaped || "").replace(/\d+(?:-\d+)+/g, (m) => `<span class="nowrap">${m}</span>`);
+}
 
 function escapeHtml(str) {
   if (!str) return "";

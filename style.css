@@ -1889,3 +1889,5 @@ input:focus-visible,
     align-items: flex-end;
   }
 }
+
+.nowrap { white-space: nowrap; }
