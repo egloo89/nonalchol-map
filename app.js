@@ -1779,7 +1779,6 @@ window.onload = function () {
   initReportModal();
   initSearchToggle();
   initMobileTopbar();
-  initWelcomePopup();
   // initMap은 카카오맵 SDK 로드 후 자동 호출됨 (index.html 참고)
 };
 
@@ -1791,9 +1790,17 @@ function todayKey() {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
+// 지도·이미지 로딩(window.onload)을 기다리지 않고 화면 구조가 준비되면 바로 띄운다
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initWelcomePopup);
+} else {
+  initWelcomePopup();
+}
+
 function initWelcomePopup() {
   const overlay = document.getElementById("welcome-overlay");
-  if (!overlay) return;
+  if (!overlay || overlay.dataset.ready) return;
+  overlay.dataset.ready = "1";
 
   let hiddenDate = null;
   try { hiddenDate = localStorage.getItem(WELCOME_HIDE_KEY); } catch (e) {}
@@ -1814,7 +1821,9 @@ function initWelcomePopup() {
   document.getElementById("welcome-shop")?.addEventListener("click", close);
   document.getElementById("welcome-report")?.addEventListener("click", () => {
     close();
-    openReportModal();
+    // 제보 폼의 버튼 연결(initReportModal)은 window.onload 에서 끝나므로 그 뒤에 연다
+    if (document.readyState === "complete") openReportModal();
+    else window.addEventListener("load", () => setTimeout(openReportModal, 0), { once: true });
   });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
   document.addEventListener("keydown", (e) => {
