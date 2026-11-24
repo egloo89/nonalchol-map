@@ -1984,10 +1984,119 @@ function initInstallBanner() {
 
 // 지도·이미지 로딩(window.onload)을 기다리지 않고 화면 구조가 준비되면 바로 띄운다
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => { initWelcomePopup(); initInstallBanner(); });
+  document.addEventListener("DOMContentLoaded", () => { initShare(); initWelcomePopup(); initInstallBanner(); });
 } else {
+  initShare();
   initWelcomePopup();
   initInstallBanner();
+}
+
+// ─── 친구에게 공유하기 ─────────────────────────────
+const SHARE_BASE_URL = "https://nonalchol-map.vercel.app/";
+const SHARE_TITLE = "논알콜맵 - 논알콜 맥주·하이볼·칵테일·와인 파는 가게 지도";
+const SHARE_TEXT = "술 줄이고 싶을 때, 운전할 때, 임산부일 때! 논알콜 파는 가게를 지도에서 찾아보세요 🍻";
+
+// 어떤 방법으로 공유됐는지 Vercel 분석에서 볼 수 있게 utm_source 를 붙인다
+function shareUrl(source) {
+  return SHARE_BASE_URL + "?utm_source=" + encodeURIComponent(source);
+}
+
+function openShare() {
+  const overlay = document.getElementById("share-overlay");
+  if (!overlay) return;
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+}
+function closeShare() {
+  const overlay = document.getElementById("share-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e2) {}
+    ta.remove();
+    return ok;
+  }
+}
+
+async function shareNative(source) {
+  if (!navigator.share) return false;
+  try {
+    await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url: shareUrl(source) });
+    return true;
+  } catch (e) {
+    return e && e.name === "AbortError"; // 사용자가 취소한 것은 실패로 보지 않는다
+  }
+}
+
+function shareKakao() {
+  const url = shareUrl("share_kakao");
+  if (!window.Kakao || typeof KAKAO_MAP_KEY === "undefined") return false;
+  try {
+    if (!Kakao.isInitialized()) Kakao.init(KAKAO_MAP_KEY);
+    Kakao.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title: "논알콜맵",
+        description: "논알콜 맥주·하이볼·칵테일·와인 파는 가게를 지도에서 찾아보세요 🍻",
+        imageUrl: SHARE_BASE_URL + "icon-512.png",
+        imageWidth: 512,
+        imageHeight: 512,
+        link: { mobileWebUrl: url, webUrl: url },
+      },
+      buttons: [{ title: "지도 보기", link: { mobileWebUrl: url, webUrl: url } }],
+    });
+    return true;
+  } catch (e) {
+    console.warn("카카오톡 공유 실패", e);
+    return false;
+  }
+}
+
+function initShare() {
+  const overlay = document.getElementById("share-overlay");
+  if (!overlay || overlay.dataset.ready) return;
+  overlay.dataset.ready = "1";
+
+  const urlEl = document.getElementById("share-url");
+  if (urlEl) urlEl.textContent = SHARE_BASE_URL.replace(/^https:\/\//, "").replace(/\/$/, "");
+  if (navigator.share) document.getElementById("share-native").hidden = false;
+
+  document.getElementById("btn-share-pc")?.addEventListener("click", openShare);
+  document.getElementById("mobile-share-btn")?.addEventListener("click", openShare);
+  document.getElementById("share-close")?.addEventListener("click", closeShare);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeShare(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) closeShare();
+  });
+
+  document.getElementById("share-kakao")?.addEventListener("click", async () => {
+    if (shareKakao()) { closeShare(); return; }
+    // 카카오가 안 되면 휴대폰 공유창 → 그것도 없으면 링크 복사
+    if (await shareNative("share_app")) { closeShare(); return; }
+    const ok = await copyText(shareUrl("share_link"));
+    if (typeof showToast === "function") {
+      showToast(ok ? "카카오톡 공유가 안 돼서 링크를 복사했어요. 카톡에 붙여넣어 주세요!" : "공유에 실패했어요. 주소창의 링크를 복사해 주세요.", ok ? "success" : "error");
+    }
+  });
+  document.getElementById("share-native")?.addEventListener("click", async () => {
+    if (await shareNative("share_app")) closeShare();
+  });
+  document.getElementById("share-copy")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const label = document.getElementById("share-copy-label");
+    const ok = await copyText(shareUrl("share_link"));
+    if (label) label.textContent = ok ? "링크 복사됨 ✓ 붙여넣어 보내세요" : "복사 실패 — 주소창 링크를 복사해 주세요";
+    btn.classList.toggle("done", ok);
+    setTimeout(() => { if (label) label.textContent = "링크 복사"; btn.classList.remove("done"); }, 2500);
+  });
 }
 
 function initWelcomePopup() {
@@ -2012,6 +2121,10 @@ function initWelcomePopup() {
   document.getElementById("welcome-close")?.addEventListener("click", close);
   document.getElementById("welcome-find")?.addEventListener("click", close);
   document.getElementById("welcome-shop")?.addEventListener("click", close);
+  document.getElementById("welcome-share")?.addEventListener("click", () => {
+    close();
+    openShare();
+  });
   document.getElementById("welcome-report")?.addEventListener("click", () => {
     close();
     // 제보 폼의 버튼 연결(initReportModal)은 window.onload 에서 끝나므로 그 뒤에 연다

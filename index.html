@@ -113,6 +113,7 @@
   <a href="admin.html" class="btn-admin-link" id="btn-admin-link" style="display:none">관리자</a>
   <a href="shop.html" class="btn-shop-link" id="btn-shop-link">🛒 논알콜 구입</a>
   <button id="btn-report-place">📢 가게 제보</button>
+  <button id="btn-share-pc" type="button">🔗 공유</button>
   <button id="btn-secret-pc" type="button">🤫 시크릿</button>
   <button id="btn-add-place">＋ 가게 추가</button>
   </div>
@@ -192,6 +193,14 @@
       <button id="mobile-report-pill" type="button" class="map-pill">📢 가게제보</button>
       <button id="mobile-secret-pill" type="button" class="map-pill">🤫 시크릿</button>
     </div>
+
+    <!-- 공유 버튼 (모바일) -->
+    <button id="mobile-share-btn" type="button" title="친구에게 공유하기" aria-label="친구에게 공유하기">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/>
+      </svg>
+    </button>
 
     <!-- 현재 위치 버튼 -->
     <button id="mobile-location-btn" type="button" title="현재 위치로 이동">
@@ -358,11 +367,36 @@
         <span class="wb-icon">📢</span>
         <span class="wb-text"><b>가게 제보</b><small>아는 논알콜 가게 알려주기</small></span>
       </button>
+      <button type="button" class="welcome-btn welcome-share" id="welcome-share">
+        <span class="wb-icon">💬</span>
+        <span class="wb-text"><b>친구에게 공유하기</b><small>술 줄이고 싶은 친구에게 알려주기</small></span>
+      </button>
     </div>
     <label class="welcome-skip">
       <input type="checkbox" id="welcome-skip-today" />
       오늘 하루 보지 않기
     </label>
+  </div>
+</div>
+
+<!-- ─── 친구에게 공유하기 ─── -->
+<div id="share-overlay" class="modal-overlay" aria-hidden="true">
+  <div class="share-sheet" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <button type="button" class="modal-close share-close" id="share-close" aria-label="닫기">✕</button>
+    <h2 id="share-title">친구에게 논알콜맵 알려주기</h2>
+    <p class="share-sub">술 줄이고 싶은 친구, 운전하는 친구,<br>임산부 친구에게 논알콜 파는<br>가게 지도를 보내 주세요 🍻</p>
+    <div class="share-actions">
+      <button type="button" class="share-btn share-kakao" id="share-kakao">
+        <span class="share-ic">💬</span> 카카오톡으로 공유
+      </button>
+      <button type="button" class="share-btn share-native" id="share-native" hidden>
+        <span class="share-ic">📤</span> 다른 앱으로 공유
+      </button>
+      <button type="button" class="share-btn share-copy" id="share-copy">
+        <span class="share-ic">🔗</span> <span id="share-copy-label">링크 복사</span>
+      </button>
+    </div>
+    <div class="share-url" id="share-url">nonalchol-map.vercel.app</div>
   </div>
 </div>
 

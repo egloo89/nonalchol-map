@@ -160,6 +160,19 @@ body {
 }
 #btn-secret-pc:hover { background: #e5e7eb; }
 
+#btn-share-pc {
+  background: #fee500;
+  color: #191919;
+  border: 1px solid #f5d800;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+@media (hover: hover) { #btn-share-pc:hover { background: #fde047; } }
+
 #btn-shop-link {
   background: #ff5722;
   color: white;
@@ -238,6 +251,7 @@ body {
 #mobile-topbar { display: none; }
 #mobile-map-pills { display: none; }
 #mobile-location-btn { display: none; }
+#mobile-share-btn { display: none; }
 #map-brand-label { display: none; }
 #mobile-profile-menu { display: none; }
 
@@ -1553,6 +1567,21 @@ input:focus-visible,
     z-index: 10; color: var(--primary);
   }
 
+  /* ── 공유 버튼 (현재 위치 버튼 위) ── */
+  #mobile-share-btn {
+    display: flex;
+    position: absolute;
+    bottom: 68px; right: 12px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    cursor: pointer;
+    align-items: center; justify-content: center;
+    z-index: 10; color: #16a34a;
+  }
+
   /* ── 브랜드 라벨 ── */
   #map-brand-label {
     display: block;
@@ -1770,6 +1799,7 @@ input:focus-visible,
 .welcome-find { background: #2563eb; }
 .welcome-shop { background: #ff5722; }
 .welcome-report { background: #10b981; }
+.welcome-share { background: #fee500; color: #191919; }
 .wb-icon { font-size: 24px; line-height: 1; }
 .wb-text { display: flex; flex-direction: column; gap: 2px; }
 .wb-text b { font-size: 16px; font-weight: 700; }
@@ -1916,6 +1946,70 @@ input:focus-visible,
   cursor: pointer;
 }
 [hidden] { display: none !important; }
+
+/* ─── 친구에게 공유하기 ─── */
+#share-overlay {
+  z-index: 2600;
+  align-items: center !important;
+  padding: 16px !important;
+}
+.share-sheet {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 380px;
+  padding: 26px 20px 20px;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.2s;
+}
+#share-overlay.active .share-sheet { transform: none; }
+.share-close { position: absolute; top: 12px; right: 12px; }
+.share-sheet h2 {
+  padding: 0 30px; /* 오른쪽 위 ✕ 버튼과 겹치지 않게 */
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: #111827;
+  word-break: keep-all;
+}
+.share-sub {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4b5563;
+  margin: 0 0 18px;
+  word-break: keep-all;
+}
+.share-actions { display: flex; flex-direction: column; gap: 10px; }
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.15s;
+}
+.share-btn:active { transform: scale(0.98); }
+.share-ic { font-size: 20px; line-height: 1; }
+.share-kakao { background: #fee500; color: #191919; }
+.share-native { background: #2563eb; color: #fff; }
+.share-copy { background: #f3f4f6; color: #111827; }
+.share-copy.done { background: #059669; color: #fff; }
+.share-url {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #6b7280;
+  word-break: break-all;
+}
 
 /* ─── 시크릿 모달 ─── */
 #secret-modal-overlay {
