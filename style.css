@@ -1955,64 +1955,118 @@ input:focus-visible,
 }
 .secret-message {
   width: 100%;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #333;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #1f2937;
   text-align: center;
+  /* 한글을 단어 단위로 줄바꿈 (단어 중간에서 끊기지 않게) */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  letter-spacing: -0.01em;
 }
 .secret-message p {
-  margin: 0 0 12px;
+  margin: 0 0 20px;
 }
-.secret-message p:first-child {
-  font-style: italic;
-  color: #555;
-  background: #f9f9f9;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 13px;
+.secret-message b { font-weight: 700; color: #111827; }
+.secret-message .hl-blue { color: #2563eb; font-weight: 800; }
+.secret-message .hl-green { color: #059669; font-weight: 800; }
+
+/* 첫 문장: 인용 박스 (기울임 없이) */
+.secret-quote {
+  background: #f3f6fb;
+  border-left: 4px solid #2563eb;
+  padding: 16px 16px;
+  border-radius: 12px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: #374151;
 }
+/* 회상 부분은 살짝 흐리게 */
+.secret-muted { color: #6b7280; }
+/* 핵심 문장은 크게 */
+.secret-big {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.6;
+  color: #111827;
+}
+.secret-cheers {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
 .secret-support {
-  margin-top: 8px;
+  margin-top: 4px;
+  margin-bottom: 22px;
   background: #f0f7ff;
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 13px;
-  text-align: left;
-}
-.secret-support p { margin: 0 0 6px; }
-.secret-support p:last-child { margin: 0; }
-.secret-support-title {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 16px;
   text-align: center;
-  font-weight: 600;
-  color: #444;
-  margin-bottom: 10px !important;
-  line-height: 1.5;
 }
+.secret-support p { margin: 0 0 10px; }
+.secret-support-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  line-height: 1.6;
+}
+.secret-account {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.secret-account .bank { font-weight: 700; color: #059669; }
+.secret-account .acct-num {
+  font-size: 21px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.secret-account .acct-name { font-weight: 600; color: #374151; }
+.secret-copy {
+  margin-top: 2px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.secret-copy:active { transform: scale(0.97); }
+.secret-copy.done { background: #059669; }
 .secret-support a { color: #2563eb; text-decoration: none; }
 .secret-sign {
   text-align: center;
-  font-weight: 700;
-  color: #444;
-  margin-bottom: 32px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #374151;
+  margin-bottom: 32px !important;
 }
 .secret-call {
-  margin-top: 14px;
+  margin-top: 20px;
   background: #fff7ed;
   border: 1px solid #fed7aa;
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 13px;
-  font-weight: 600;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 500;
   color: #9a3412;
-  line-height: 1.6;
+  line-height: 1.7;
 }
+.secret-call b { color: #c2410c; }
 .secret-feedback {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #666;
-  line-height: 1.6;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.7;
 }
-.secret-feedback a { color: #2563eb; text-decoration: none; }
+.secret-feedback a { color: #2563eb; font-weight: 700; text-decoration: none; word-break: break-all; }
 
 @media (max-width: 640px) {
   .secret-modal {

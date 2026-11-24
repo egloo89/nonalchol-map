@@ -2114,6 +2114,23 @@ function initMobileTopbar() {
   }
   document.getElementById("mobile-secret-pill")?.addEventListener("click", openSecretModal);
   document.getElementById("btn-secret-pc")?.addEventListener("click", openSecretModal);
+
+  // 후원 계좌번호 복사
+  document.getElementById("secret-copy-acct")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const text = "하나은행 " + (document.getElementById("secret-acct-num")?.textContent || "").trim();
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (err) {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch (err2) {}
+      ta.remove();
+    }
+    btn.textContent = ok ? "복사됐어요 ✓" : "길게 눌러 복사해 주세요";
+    btn.classList.toggle("done", ok);
+    setTimeout(() => { btn.textContent = "계좌번호 복사"; btn.classList.remove("done"); }, 2000);
+  });
   secretClose?.addEventListener("click", () => {
     secretOverlay.classList.remove("active");
     document.body.style.overflow = "";
