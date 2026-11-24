@@ -97,6 +97,44 @@
     .btn-fix-coord:hover { background:#fde68a; }
     .btn-del:hover { background:var(--danger); color:white; }
 
+    /* ── 방문자 통계 ── */
+    .stats-controls { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .stats-presets { display:flex; flex-wrap:wrap; gap:6px; }
+    .preset { padding:7px 12px; border:1px solid var(--border); border-radius:999px; background:var(--card); font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; }
+    .preset.active { background:#eff6ff; border-color:var(--primary); color:var(--primary); }
+    .stats-range { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .stats-range input { padding:7px 9px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family:inherit; color:var(--text); background:var(--card); }
+    #stats-apply { padding:8px 16px; border:0; border-radius:8px; background:var(--primary); color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    .stats-cards { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:14px; }
+    .stat-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
+    .stat-label { font-size:12px; color:var(--muted); font-weight:600; }
+    .stat-value { font-size:28px; font-weight:800; margin-top:4px; font-variant-numeric:tabular-nums; }
+    .stat-sub { font-size:12px; color:var(--muted); margin-top:2px; min-height:16px; }
+    .stats-chart-wrap { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:14px; }
+    .stats-chart-title { font-size:13px; font-weight:700; margin-bottom:10px; }
+    .stats-chart { display:flex; align-items:flex-end; gap:2px; height:180px; border-bottom:1px solid var(--border); position:relative; }
+    .stats-chart .bar { flex:1 1 0; min-width:2px; background:var(--primary); border-radius:3px 3px 0 0; position:relative; opacity:.85; }
+    .stats-chart .bar:hover { opacity:1; }
+    .stats-chart .bar.zero { background:var(--border); height:2px !important; }
+    .stats-chart .bar.today { background:var(--accent); }
+    .stats-chart-axis { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:6px; }
+    .stats-chart-empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px; }
+    .stats-table-wrap { overflow-x:auto; }
+    #stats-table { min-width:0; }
+    #stats-table th, #stats-table td { white-space:nowrap; }
+    .tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .tab { white-space:nowrap; flex-shrink:0; }
+    #stats-table td:nth-child(n+3), #stats-table th:nth-child(n+3) { text-align:right; font-variant-numeric:tabular-nums; }
+    #stats-table tr.weekend td:nth-child(2) { color:var(--danger); }
+    #stats-table tr.is-today td { background:#f0fdf4; font-weight:700; }
+    #stats-table tfoot td { font-weight:800; background:var(--bg); }
+    .stats-note { font-size:12px; color:var(--muted); line-height:1.7; margin-top:10px; }
+    @media (max-width: 720px) {
+      .stats-cards { grid-template-columns:repeat(2, 1fr); }
+      .stat-value { font-size:22px; }
+      .stats-controls { flex-direction:column; align-items:stretch; }
+    }
+
     /* ── 탭 ── */
     .tabs { display:flex; gap:8px; margin-bottom:16px; }
     .tab {
@@ -144,14 +182,53 @@
   </header>
   <main id="admin-main">
     <div class="tabs">
-      <button class="tab active" id="tab-places">등록된 가게</button>
+      <button class="tab active" id="tab-stats">📊 방문자 통계</button>
+      <button class="tab" id="tab-places">등록된 가게</button>
       <button class="tab" id="tab-reports">제보 대기 <span class="badge" id="report-badge" style="display:none">0</span></button>
       <button class="tab" id="tab-bulk">＋ 대량 추가</button>
     </div>
 
-    <div id="loading">데이터를 불러오는 중...</div>
+    <div id="loading" style="display:none">데이터를 불러오는 중...</div>
 
-    <section id="section-places">
+    <section id="section-stats">
+      <div class="stats-controls">
+        <div class="stats-presets">
+          <button type="button" class="preset" data-days="7">최근 7일</button>
+          <button type="button" class="preset active" data-days="30">최근 30일</button>
+          <button type="button" class="preset" data-days="90">최근 90일</button>
+          <button type="button" class="preset" data-range="this-month">이번 달</button>
+          <button type="button" class="preset" data-range="last-month">지난 달</button>
+        </div>
+        <div class="stats-range">
+          <input type="date" id="stats-from" aria-label="시작일" />
+          <span>~</span>
+          <input type="date" id="stats-to" aria-label="종료일" />
+          <button type="button" id="stats-apply">조회</button>
+        </div>
+      </div>
+
+      <div class="stats-cards">
+        <div class="stat-card"><div class="stat-label">오늘 방문자</div><div class="stat-value" id="stat-today">-</div><div class="stat-sub" id="stat-today-pv"></div></div>
+        <div class="stat-card"><div class="stat-label">기간 방문자 합계</div><div class="stat-value" id="stat-sum">-</div><div class="stat-sub" id="stat-range-label"></div></div>
+        <div class="stat-card"><div class="stat-label">하루 평균 방문자</div><div class="stat-value" id="stat-avg">-</div><div class="stat-sub" id="stat-best"></div></div>
+        <div class="stat-card"><div class="stat-label">기간 페이지뷰 합계</div><div class="stat-value" id="stat-pv">-</div><div class="stat-sub">페이지를 연 횟수</div></div>
+      </div>
+
+      <div class="stats-chart-wrap">
+        <div class="stats-chart-title">일자별 방문자 수</div>
+        <div id="stats-chart" class="stats-chart"></div>
+      </div>
+
+      <div class="stats-table-wrap">
+        <table id="stats-table">
+          <thead><tr><th>날짜</th><th>요일</th><th>방문자</th><th>페이지뷰</th><th>1인당 페이지뷰</th></tr></thead>
+          <tbody id="stats-tbody"><tr><td colspan="5" class="td-empty">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+      <p class="stats-note">· 방문자는 같은 브라우저를 하루에 한 번만 셉니다. 날짜는 한국 시간 기준입니다.<br>· 관리자 페이지를 열어 본 브라우저의 방문은 세지 않습니다.</p>
+    </section>
+
+    <section id="section-places" style="display:none">
       <table id="places-table" style="display:none">
         <thead>
           <tr>
@@ -257,7 +334,8 @@
   // 권한 확인: 카카오/네이버(localStorage) → 구글(Firebase Auth) 순으로 검사
   (function checkAccess() {
     const ext = loadExternalUser();
-    if (ext && isAdminEmail(ext.email)) { showAdmin(); return; }
+    // 아래쪽 let/const(통계·제보 캐시 등)가 모두 준비된 뒤 실행되도록 한 박자 늦춘다
+    if (ext && isAdminEmail(ext.email)) { setTimeout(showAdmin, 0); return; }
 
     // 구글 로그인 상태 확인 (비동기)
     firebase.auth().onAuthStateChanged((user) => {
@@ -292,23 +370,141 @@
     loadPlaces();
     loadReports();
     initTabs();
+    initStats();
   }
 
   function initTabs() {
+    document.getElementById("tab-stats").addEventListener("click", () => switchTab("stats"));
     document.getElementById("tab-places").addEventListener("click", () => switchTab("places"));
     document.getElementById("tab-reports").addEventListener("click", () => switchTab("reports"));
     document.getElementById("tab-bulk").addEventListener("click", () => switchTab("bulk"));
     initBulk();
   }
 
+  let placesLoaded = false;
   function switchTab(name) {
-    document.getElementById("tab-places").classList.toggle("active", name === "places");
-    document.getElementById("tab-reports").classList.toggle("active", name === "reports");
-    document.getElementById("tab-bulk").classList.toggle("active", name === "bulk");
-    document.getElementById("section-places").style.display = name === "places" ? "block" : "none";
-    document.getElementById("section-reports").style.display = name === "reports" ? "block" : "none";
-    document.getElementById("section-bulk").style.display = name === "bulk" ? "block" : "none";
-    document.getElementById("loading").style.display = (name === "bulk") ? "none" : document.getElementById("loading").style.display;
+    ["stats", "places", "reports", "bulk"].forEach((t) => {
+      document.getElementById("tab-" + t).classList.toggle("active", name === t);
+      document.getElementById("section-" + t).style.display = name === t ? "block" : "none";
+    });
+    // 가게 목록을 아직 못 불러왔을 때만 '불러오는 중' 표시
+    document.getElementById("loading").style.display =
+      (name === "places" || name === "reports") && !placesLoaded ? "block" : "none";
+  }
+
+  // ── 방문자 통계 ──
+  // stats_daily/{YYYY-MM-DD} 문서 (analytics.js 가 한국 날짜 기준으로 센다)
+  const KST_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" });
+  const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+  const todayKst = () => KST_FMT.format(new Date());
+  // "YYYY-MM-DD" 문자열끼리 날짜 계산 (시간대 영향 없이 UTC 정오 기준)
+  const toDate = (str) => new Date(str + "T12:00:00Z");
+  const toStr = (d) => d.toISOString().slice(0, 10);
+  const addDays = (str, n) => { const d = toDate(str); d.setUTCDate(d.getUTCDate() + n); return toStr(d); };
+  const fmtNum = (n) => Number(n || 0).toLocaleString("ko-KR");
+
+  function presetRange(btn) {
+    const today = todayKst();
+    if (btn.dataset.days) return [addDays(today, -(Number(btn.dataset.days) - 1)), today];
+    const [y, m] = today.split("-").map(Number);
+    if (btn.dataset.range === "this-month") return [`${y}-${String(m).padStart(2, "0")}-01`, today];
+    const py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1;
+    const last = new Date(Date.UTC(py, pm, 0)).getUTCDate();
+    const mm = String(pm).padStart(2, "0");
+    return [`${py}-${mm}-01`, `${py}-${mm}-${last}`];
+  }
+
+  function initStats() {
+    const fromEl = document.getElementById("stats-from");
+    const toEl = document.getElementById("stats-to");
+    const today = todayKst();
+    fromEl.max = today; toEl.max = today;
+    document.querySelectorAll(".preset").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".preset").forEach((b) => b.classList.toggle("active", b === btn));
+        const [f, t] = presetRange(btn);
+        fromEl.value = f; toEl.value = t;
+        loadStats(f, t);
+      });
+    });
+    document.getElementById("stats-apply").addEventListener("click", () => {
+      let f = fromEl.value, t = toEl.value;
+      if (!f || !t) { alert("시작일과 종료일을 모두 선택해 주세요."); return; }
+      if (f > t) { [f, t] = [t, f]; fromEl.value = f; toEl.value = t; }
+      document.querySelectorAll(".preset").forEach((b) => b.classList.remove("active"));
+      loadStats(f, t);
+    });
+    const [f, t] = presetRange(document.querySelector('.preset[data-days="30"]'));
+    fromEl.value = f; toEl.value = t;
+    loadStats(f, t);
+  }
+
+  async function loadStats(from, to) {
+    const tbody = document.getElementById("stats-tbody");
+    tbody.innerHTML = '<tr><td colspan="5" class="td-empty">불러오는 중...</td></tr>';
+    const byDay = {};
+    try {
+      const id = firebase.firestore.FieldPath.documentId();
+      const snap = await db.collection("stats_daily").where(id, ">=", from).where(id, "<=", to).get();
+      snap.forEach((doc) => { byDay[doc.id] = doc.data(); });
+      // 오늘 카드는 선택 기간과 상관없이 항상 오늘 값
+      const today = todayKst();
+      let todayData = byDay[today];
+      if (!todayData) {
+        const td = await db.collection("stats_daily").doc(today).get();
+        todayData = td.exists ? td.data() : {};
+      }
+      renderStats(from, to, byDay, todayData || {});
+    } catch (err) {
+      const denied = /permission/i.test(err.message || "");
+      tbody.innerHTML = `<tr><td colspan="5" class="td-empty">${denied
+        ? "통계를 읽을 권한이 없습니다. Firebase 콘솔에서 firestore.rules 의 stats_daily 규칙을 게시해야 합니다."
+        : "통계를 불러오지 못했습니다: " + h(err.message || "")}</td></tr>`;
+      document.getElementById("stats-chart").innerHTML = "";
+    }
+  }
+
+  function renderStats(from, to, byDay, todayData) {
+    const today = todayKst();
+    const days = [];
+    for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
+    const rows = days.map((d) => ({ d, v: byDay[d]?.visitors || 0, pv: byDay[d]?.pageviews || 0 }));
+    const sumV = rows.reduce((a, r) => a + r.v, 0);
+    const sumPv = rows.reduce((a, r) => a + r.pv, 0);
+    const best = rows.reduce((a, r) => (r.v > (a?.v ?? -1) ? r : a), null);
+
+    document.getElementById("stat-today").textContent = fmtNum(todayData.visitors);
+    document.getElementById("stat-today-pv").textContent = `페이지뷰 ${fmtNum(todayData.pageviews)}`;
+    document.getElementById("stat-sum").textContent = fmtNum(sumV);
+    document.getElementById("stat-range-label").textContent = `${from} ~ ${to} (${days.length}일)`;
+    document.getElementById("stat-avg").textContent = days.length ? (sumV / days.length).toFixed(1) : "-";
+    document.getElementById("stat-best").textContent = best && best.v > 0 ? `최고 ${best.d.slice(5)} · ${fmtNum(best.v)}명` : "";
+    document.getElementById("stat-pv").textContent = fmtNum(sumPv);
+
+    // 막대 그래프 (왼쪽이 오래된 날)
+    const max = Math.max(1, ...rows.map((r) => r.v));
+    const chart = document.getElementById("stats-chart");
+    chart.innerHTML = rows.map((r) => {
+      const wd = WEEKDAYS[toDate(r.d).getUTCDay()];
+      return `<div class="bar${r.v === 0 ? " zero" : ""}${r.d === today ? " today" : ""}" style="height:${(r.v / max) * 100}%" title="${r.d} (${wd}) 방문자 ${fmtNum(r.v)} · 페이지뷰 ${fmtNum(r.pv)}"></div>`;
+    }).join("") + (sumV === 0 ? '<div class="stats-chart-empty">이 기간에는 기록된 방문이 없습니다</div>' : "");
+    const axis = chart.nextElementSibling?.classList?.contains("stats-chart-axis") ? chart.nextElementSibling : (() => {
+      const el = document.createElement("div"); el.className = "stats-chart-axis"; chart.after(el); return el;
+    })();
+    axis.innerHTML = `<span>${from}</span><span>최대 ${fmtNum(max)}명/일</span><span>${to}</span>`;
+
+    // 표 (최근 날짜가 위)
+    const tbody = document.getElementById("stats-tbody");
+    tbody.innerHTML = rows.slice().reverse().map((r) => {
+      const dow = toDate(r.d).getUTCDay();
+      const per = r.v ? (r.pv / r.v).toFixed(1) : "-";
+      return `<tr class="${dow === 0 || dow === 6 ? "weekend" : ""}${r.d === today ? " is-today" : ""}">
+        <td>${r.d}${r.d === today ? " (오늘)" : ""}</td><td>${WEEKDAYS[dow]}</td>
+        <td>${fmtNum(r.v)}</td><td>${fmtNum(r.pv)}</td><td>${per}</td></tr>`;
+    }).join("");
+    const table = document.getElementById("stats-table");
+    table.querySelector("tfoot")?.remove();
+    table.insertAdjacentHTML("beforeend", `<tfoot><tr><td>합계</td><td></td><td>${fmtNum(sumV)}</td><td>${fmtNum(sumPv)}</td><td>${sumV ? (sumPv / sumV).toFixed(1) : "-"}</td></tr></tfoot>`);
   }
 
   // ── 대량 추가 ──
@@ -446,6 +642,7 @@
     db.collection("places").orderBy("createdAt", "desc").onSnapshot((snap) => {
       const places = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       document.getElementById("place-count").textContent = `총 ${places.length}개 가게`;
+      placesLoaded = true;
       document.getElementById("loading").style.display = "none";
       document.getElementById("places-table").style.display = places.length ? "table" : "none";
       renderTable(places);
