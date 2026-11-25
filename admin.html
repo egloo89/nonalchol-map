@@ -53,15 +53,67 @@
       height:56px; display:flex; align-items:center; gap:12px;
       box-shadow:var(--shadow);
     }
-    #admin-header h1 { font-size:17px; font-weight:700; }
+    #admin-header h1 { font-size:17px; font-weight:700; margin:0; white-space:nowrap; min-width:0; }
+    #admin-header .brand { display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit; }
+    #admin-header .brand-badge { background:#1a1a2e; color:#fff; font-size:13px; font-weight:900; padding:2px 7px; border-radius:6px; letter-spacing:-0.5px; flex-shrink:0; }
+    #admin-header .brand-sub { color:var(--muted); font-weight:600; }
+    #admin-header .short { display:none; }
     #admin-header .spacer { flex:1; }
     #admin-header .count { font-size:13px; color:var(--muted); }
-    #admin-header a { font-size:13px; color:var(--muted); text-decoration:none; padding:6px 10px; border:1px solid var(--border); border-radius:8px; }
-    #admin-header a:hover { background:var(--bg); }
+    #admin-header .hdr-btn { font-size:13px; color:var(--muted); text-decoration:none; padding:6px 10px; border:1px solid var(--border); border-radius:8px; white-space:nowrap; flex-shrink:0; }
+    #admin-header .hdr-btn:hover { background:var(--bg); }
     #btn-logout {
       padding:6px 12px; border:1px solid var(--border); border-radius:8px;
       background:var(--bg); font-size:13px; cursor:pointer; color:var(--text);
+      white-space:nowrap; flex-shrink:0;
     }
+    #admin-header .count { white-space:nowrap; }
+
+    /* 휴대폰: 한 줄에 깔끔하게 (단어가 쪼개지지 않게, 긴 문구는 짧게) */
+    @media (max-width: 640px) {
+      #admin-header { padding:0 12px; gap:8px; height:52px; }
+      #admin-header h1 { font-size:15px; }
+      #admin-header .count { display:none; }
+      #admin-header .long { display:none; }
+      #admin-header .short { display:inline; }
+      #admin-header .hdr-btn, #btn-logout { padding:6px 10px; font-size:12.5px; }
+      #admin-main { padding:14px 12px; }
+    }
+    /* 휴대폰: 가게·제보 표를 카드로 (옆으로 밀지 않고 위아래로만 읽게) */
+    @media (max-width: 720px) {
+      #places-table, #reports-table { min-width:0 !important; background:transparent; box-shadow:none; border-radius:0; }
+      #places-table thead, #reports-table thead { display:none; }
+      #places-table tbody, #reports-table tbody,
+      #places-table tr, #reports-table tr { display:block; width:100%; }
+      #places-table tr, #reports-table tr {
+        background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+        padding:12px 14px; margin-bottom:12px;
+      }
+      #places-table td, #reports-table td {
+        display:flex; gap:10px; align-items:flex-start;
+        border:0; padding:5px 0; max-width:none !important; width:auto;
+        font-size:14px; line-height:1.5; white-space:normal !important;
+        word-break:keep-all; overflow-wrap:anywhere;
+      }
+      #places-table td::before, #reports-table td::before {
+        content:attr(data-label); flex:0 0 64px; color:var(--muted); font-size:12px; font-weight:600; padding-top:2px;
+      }
+      /* 첫 줄: 번호 + 가게명은 크게, 라벨 없이 */
+      #places-table td.td-num, #reports-table td.td-num { display:none; }
+      #places-table td.td-name, #reports-table td.td-name { font-size:16px; font-weight:800; padding-bottom:8px; flex-wrap:wrap; }
+      #places-table td.td-name::before, #reports-table td.td-name::before { display:none; }
+      /* 버튼 줄: 라벨 없이 넓게 */
+      #places-table td.td-actions, #reports-table td.td-actions { flex-wrap:wrap; gap:8px; padding-top:10px; border-top:1px solid var(--border); margin-top:6px; }
+      #places-table td.td-actions::before, #reports-table td.td-actions::before { display:none; }
+      #places-table td.td-actions button, #reports-table td.td-actions button { flex:1 1 auto; padding:9px 10px; font-size:13px; }
+      #places-table td.td-empty, #reports-table td.td-empty { display:block; text-align:center; }
+      #places-table td.td-empty::before, #reports-table td.td-empty::before { display:none; }
+    }
+    .rtype { white-space:nowrap; }
+
+    /* 탭 줄: 옆으로 밀어서 보되 회색 스크롤 막대는 숨긴다 */
+    .tabs { scrollbar-width:none; }
+    .tabs::-webkit-scrollbar { display:none; }
     #btn-logout:hover { background:var(--border); }
 
     #admin-main { padding:24px; overflow-x:auto; }
@@ -143,6 +195,7 @@
     .btn-resolve { padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:#fff; font-size:12px; font-weight:600; cursor:pointer; }
     .hidden-wrap { margin-top:18px; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
     .hidden-wrap h3 { font-size:14px; margin:0 0 4px; }
+    .hidden-wrap p, .hidden-row { word-break:keep-all; }
     .hidden-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--border); color:var(--text); }
     .hidden-row .hn { font-weight:700; }
     .hidden-row .hr { color:var(--muted); font-size:12px; flex:1; }
@@ -187,10 +240,10 @@
 <!-- ── 관리자 대시보드 ── -->
 <div id="admin-wrap">
   <header id="admin-header">
-    <h1><a href="index.html" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px"><span style="background:#1a1a2e;color:#fff;font-size:13px;font-weight:900;padding:2px 7px;border-radius:6px;letter-spacing:-0.5px">NON</span>논알콜맵 Admin</a></h1>
+    <h1><a href="index.html" class="brand"><span class="brand-badge">NON</span><span class="brand-text">논알콜맵 <span class="brand-sub">관리자</span></span></a></h1>
     <div class="spacer"></div>
     <span class="count" id="place-count"></span>
-    <a href="index.html">지도로 돌아가기</a>
+    <a href="index.html" class="hdr-btn"><span class="long">지도로 돌아가기</span><span class="short">🗺️ 지도</span></a>
     <button id="btn-logout">로그아웃</button>
   </header>
   <main id="admin-main">
@@ -501,7 +554,10 @@
     document.getElementById("stat-today").textContent = fmtNum(todayData.visitors);
     document.getElementById("stat-today-pv").textContent = `페이지뷰 ${fmtNum(todayData.pageviews)}`;
     document.getElementById("stat-sum").textContent = fmtNum(sumV);
-    document.getElementById("stat-range-label").textContent = `${from} ~ ${to} (${days.length}일)`;
+    const md = (d) => `${Number(d.slice(5, 7))}.${Number(d.slice(8, 10))}`;
+    const sameYear = from.slice(0, 4) === to.slice(0, 4);
+    document.getElementById("stat-range-label").textContent =
+      `${sameYear ? md(from) : from.replace(/-/g, ".")} ~ ${sameYear ? md(to) : to.replace(/-/g, ".")} · ${days.length}일`;
     document.getElementById("stat-avg").textContent = days.length ? (sumV / days.length).toFixed(1) : "-";
     document.getElementById("stat-best").textContent = best && best.v > 0 ? `최고 ${best.d.slice(5)} · ${fmtNum(best.v)}명` : "";
     document.getElementById("stat-pv").textContent = fmtNum(sumPv);
@@ -666,7 +722,7 @@
   function loadPlaces() {
     db.collection("places").orderBy("createdAt", "desc").onSnapshot((snap) => {
       const places = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      document.getElementById("place-count").textContent = `총 ${places.length}개 가게`;
+      document.getElementById("place-count").textContent = `직접 등록 ${places.length}곳`;
       placesLoaded = true;
       document.getElementById("loading").style.display = "none";
       document.getElementById("places-table").style.display = places.length ? "table" : "none";
@@ -699,9 +755,20 @@
         <td style="font-size:11px">${coordCell}</td>
         <td>${h(p.addedBy||"익명")}</td>
         <td style="white-space:nowrap">${fmtDate(p.createdAt)}</td>
-        <td><button class="btn-del" onclick="del('${p.id}')">삭제</button></td>
+        <td class="td-actions"><button class="btn-del" onclick="del('${p.id}')">삭제</button></td>
       </tr>`;
     }).join("");
+    labelCells("places-table");
+  }
+
+  // 휴대폰 카드 보기용: 표 머리글 글자를 각 칸의 data-label 로 넣는다
+  function labelCells(tableId) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const heads = [...table.querySelectorAll("thead th")].map((th) => th.textContent.trim());
+    table.querySelectorAll("tbody tr").forEach((tr) => {
+      [...tr.children].forEach((td, i) => { if (heads[i] && !td.dataset.label) td.dataset.label = heads[i]; });
+    });
   }
 
   async function fixCoords(id, address) {
@@ -798,12 +865,12 @@
         <td class="td-name">${h(r.name)}<span class="rtype fix">정보 수정 신고</span></td>
         <td class="td-address">${h(r.address)}</td>
         <td style="font-size:12px">${naverMapCell(r)}</td>
-        <td class="td-brands"><b style="color:#b91c1c">${h(r.reason || "")}</b></td>
-        <td class="td-desc">${h(r.comment||"")}</td>
-        <td style="font-size:11px;color:var(--muted)">가게 ID<br>${h(r.placeId || "")}</td>
+        <td class="td-brands" data-label="신고 사유"><b style="color:#b91c1c">${h(r.reason || "")}</b></td>
+        <td class="td-desc" data-label="메모">${h(r.comment||"") || '<span style="color:var(--muted)">없음</span>'}</td>
+        <td style="font-size:11px;color:var(--muted)" data-label="가게 ID">${h(r.placeId || "")}</td>
         <td>${h(r.reportedBy||"익명")}</td>
         <td style="white-space:nowrap">${fmtDate(r.createdAt)}</td>
-        <td style="white-space:nowrap">
+        <td class="td-actions" style="white-space:nowrap">
           <button class="btn-hide" onclick="hideFromReport('${r.id}')">🙈 지도에서 숨기기</button>
           <button class="btn-resolve" onclick="resolveReport('${r.id}')">✓ 확인 완료</button>
           <button class="btn-del" onclick="rejectReport('${r.id}')">거절</button>
@@ -821,12 +888,13 @@
         </td>
         <td>${h(r.reportedBy||"익명")}</td>
         <td style="white-space:nowrap">${fmtDate(r.createdAt)}</td>
-        <td style="white-space:nowrap">
+        <td class="td-actions" style="white-space:nowrap">
           <button class="btn-approve" onclick="approveReport('${r.id}')">✓ 승인</button>
           <button class="btn-del" onclick="rejectReport('${r.id}')">거절</button>
         </td>
       </tr>
     `).join("");
+    labelCells("reports-table");
   }
 
   async function doSaveApproval(r, lat, lng) {

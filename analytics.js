@@ -64,7 +64,6 @@ window.trackCoupangClick = function (productName) {
   var isNewVisitor = true;
   try {
     isNewVisitor = localStorage.getItem(VISIT_DAY_KEY) !== day;
-    localStorage.setItem(VISIT_DAY_KEY, day);
   } catch (e) {}
 
   var base = "projects/" + PROJECT + "/databases/(default)/documents";
@@ -79,6 +78,11 @@ window.trackCoupangClick = function (productName) {
       body: JSON.stringify({
         writes: [{ transform: { document: base + "/stats_daily/" + day, fieldTransforms: transforms } }],
       }),
+    }).then(function (res) {
+      // 실제로 기록됐을 때만 '오늘 방문함'으로 표시한다 (실패하면 다음 방문 때 다시 센다)
+      if (res.ok && isNewVisitor) {
+        try { localStorage.setItem(VISIT_DAY_KEY, day); } catch (e) {}
+      }
     }).catch(function () {});
   } catch (e) {}
 })();
