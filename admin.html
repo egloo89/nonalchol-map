@@ -136,6 +136,16 @@
     }
 
     /* ── 탭 ── */
+    .rtype { display:inline-block; margin-left:4px; padding:1px 7px; border-radius:999px; font-size:11px; font-weight:700; }
+    .rtype.new { background:#dcfce7; color:#166534; }
+    .rtype.fix { background:#fee2e2; color:#991b1b; }
+    .btn-hide { padding:5px 10px; border:1px solid #fecaca; border-radius:6px; background:#fef2f2; color:#b91c1c; font-size:12px; font-weight:600; cursor:pointer; }
+    .btn-resolve { padding:5px 10px; border:1px solid var(--border); border-radius:6px; background:#fff; font-size:12px; font-weight:600; cursor:pointer; }
+    .hidden-wrap { margin-top:18px; background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
+    .hidden-wrap h3 { font-size:14px; margin:0 0 4px; }
+    .hidden-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--border); color:var(--text); }
+    .hidden-row .hn { font-weight:700; }
+    .hidden-row .hr { color:var(--muted); font-size:12px; flex:1; }
     .tabs { display:flex; gap:8px; margin-bottom:16px; }
     .tab {
       padding:8px 16px; border:1px solid var(--border); border-radius:8px;
@@ -167,6 +177,9 @@
     <h2 id="gate-title">권한 확인 중...</h2>
     <p id="gate-msg">잠시만 기다려 주세요.</p>
     <div id="login-error"></div>
+    <button type="button" id="gate-google" style="display:none;width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:6px">
+      <span style="color:#4285f4">G</span> 운영자 구글 계정으로 로그인
+    </button>
     <a href="index.html" class="back-link">← 지도로 돌아가기</a>
   </div>
 </div>
@@ -288,6 +301,11 @@
         </thead>
         <tbody id="reports-tbody"></tbody>
       </table>
+      <div class="hidden-wrap">
+        <h3>🙈 지도에서 숨긴 가게 <span id="hidden-count" style="color:var(--muted);font-weight:600"></span></h3>
+        <p style="font-size:12px;color:var(--muted);margin:0 0 8px">폐업 신고 등으로 숨긴 가게입니다. 잘못 숨겼다면 '다시 보이기'를 누르세요.</p>
+        <div id="hidden-list" style="font-size:13px;color:var(--muted)">불러오는 중...</div>
+      </div>
     </section>
   </main>
 </div>
@@ -316,39 +334,51 @@
     return typeof isAdminEmailAsync === "function" ? isAdminEmailAsync(email) : Promise.resolve(false);
   }
 
-  function loadExternalUser() {
-    try {
-      const raw = localStorage.getItem("nonUser");
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+
+
+  function showGate(title, msg) {
+    document.getElementById("gate-title").textContent = title;
+    document.getElementById("gate-msg").innerHTML = msg;
+    document.getElementById("gate-google").style.display = "block";
   }
 
-  function denyAccess() {
-    document.getElementById("gate-title").textContent = "접근 권한이 없습니다";
-    document.getElementById("gate-msg").innerHTML =
-      "관리자 계정으로 <b>지도 페이지에서 먼저 로그인</b>한 뒤 다시 접속해 주세요.<br>(허용된 관리자 계정만 접근 가능합니다.)";
-  }
-
-  // 권한 확인: 카카오/네이버(localStorage) → 구글(Firebase Auth) 순으로 검사
-  (async function checkAccess() {
-    const ext = loadExternalUser();
-    if (ext && await isAdminEmail(ext.email)) {
-      // 아래쪽 let/const(통계·제보 캐시 등)가 모두 준비된 뒤 실행되도록 한 박자 늦춘다
-      setTimeout(showAdmin, 0);
-      return;
+  function denyAccess(user) {
+    if (user) {
+      showGate("운영자 계정이 아닙니다",
+        `<b>${h(user.email || "")}</b> 계정은 관리 권한이 없습니다.<br>운영자 구글 계정으로 다시 로그인해 주세요.`);
+    } else {
+      showGate("운영자 로그인이 필요합니다",
+        "가게 추가·수정·삭제와 제보 승인은<br><b>운영자 구글 계정</b>으로 로그인해야 할 수 있어요.");
     }
+  }
 
-    // 구글 로그인 상태 확인 (비동기)
+  document.getElementById("gate-google").addEventListener("click", async () => {
+    const err = document.getElementById("login-error");
+    err.textContent = "";
+    try {
+      if (firebase.auth().currentUser) await firebase.auth().signOut();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      await firebase.auth().signInWithPopup(provider);
+    } catch (e) {
+      if (e && e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") {
+        err.textContent = "로그인 실패: " + (e.message || e.code);
+      }
+    }
+  });
+
+  // 권한 확인: 운영자 이메일로 '구글 로그인'한 경우에만 연다 (Firestore 규칙도 같은 조건)
+  (function checkAccess() {
     firebase.auth().onAuthStateChanged(async (user) => {
       if (adminStarted) return;
-      if (user && await isAdminEmail(user.email)) showAdmin();
-      else denyAccess();
+      const isGoogle = !!user && (user.providerData || []).some((p) => p.providerId === "google.com");
+      if (user && isGoogle && user.emailVerified !== false && await isAdminEmail(user.email)) {
+        // 아래쪽 let/const(통계·제보 캐시 등)가 모두 준비된 뒤 실행되도록 한 박자 늦춘다
+        setTimeout(showAdmin, 0);
+      } else {
+        denyAccess(user);
+      }
     });
-
-    // Firebase 응답이 늦을 때를 대비해 우선 안내 (구글 관리자면 곧바로 대시보드로 바뀐다)
-    setTimeout(() => {
-      if (!adminStarted && !firebase.auth().currentUser) denyAccess();
-    }, 1500);
   })();
 
   document.getElementById("btn-logout").addEventListener("click", () => {
@@ -707,7 +737,22 @@
   // ── 제보 관리 ──
   let reportsCache = [];
 
+  let hiddenCache = [];
+  function loadHidden() {
+    db.collection("hidden_places").onSnapshot((snap) => {
+      hiddenCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.hiddenAt?.seconds || 0) - (a.hiddenAt?.seconds || 0));
+      document.getElementById("hidden-count").textContent = `${hiddenCache.length}곳`;
+      document.getElementById("hidden-list").innerHTML = hiddenCache.length
+        ? hiddenCache.map((x) => `<div class="hidden-row"><span class="hn">${h(x.name || x.id)}</span><span class="hr">${h(x.reason || "")} · ${fmtDate(x.hiddenAt)}</span><button class="btn-resolve" onclick="unhidePlace('${h(x.id)}')">다시 보이기</button></div>`).join("")
+        : "숨긴 가게가 없습니다.";
+    }, (err) => {
+      document.getElementById("hidden-list").textContent = "숨긴 가게 목록을 읽지 못했습니다: " + err.message;
+    });
+  }
+
   function loadReports() {
+    loadHidden();
     db.collection("reports").where("status", "==", "pending").onSnapshot((snap) => {
       reportsCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       reportsCache.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
@@ -724,7 +769,7 @@
 
   // 네이버맵 셀: 저장된 URL이 있으면 그 링크, 없으면 가게명+주소로 네이버맵 검색 링크 생성
   function naverMapCell(r) {
-    const searchUrl = "https://map.naver.com/p/search/" + encodeURIComponent(r.name || "");
+    const searchUrl = "https://map.naver.com/p/search/" + encodeURIComponent([r.name, r.address].filter(Boolean).join(" "));
     const href = r.naverUrl || searchUrl;
     return `<a href="${h(href)}" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600">네이버 맵</a>`;
   }
@@ -747,10 +792,26 @@
       return;
     }
 
-    tbody.innerHTML = reports.map((r, i) => `
+    tbody.innerHTML = reports.map((r, i) => r.type === "correction" ? `
       <tr>
         <td class="td-num">${i + 1}</td>
-        <td class="td-name">${h(r.name)}</td>
+        <td class="td-name">${h(r.name)}<span class="rtype fix">정보 수정 신고</span></td>
+        <td class="td-address">${h(r.address)}</td>
+        <td style="font-size:12px">${naverMapCell(r)}</td>
+        <td class="td-brands"><b style="color:#b91c1c">${h(r.reason || "")}</b></td>
+        <td class="td-desc">${h(r.comment||"")}</td>
+        <td style="font-size:11px;color:var(--muted)">가게 ID<br>${h(r.placeId || "")}</td>
+        <td>${h(r.reportedBy||"익명")}</td>
+        <td style="white-space:nowrap">${fmtDate(r.createdAt)}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-hide" onclick="hideFromReport('${r.id}')">🙈 지도에서 숨기기</button>
+          <button class="btn-resolve" onclick="resolveReport('${r.id}')">✓ 확인 완료</button>
+          <button class="btn-del" onclick="rejectReport('${r.id}')">거절</button>
+        </td>
+      </tr>` : `
+      <tr>
+        <td class="td-num">${i + 1}</td>
+        <td class="td-name">${h(r.name)}<span class="rtype new">새 가게 제보</span></td>
         <td class="td-address">${h(r.address)}</td>
         <td style="font-size:12px">${naverMapCell(r)}</td>
         <td class="td-brands">${(r.brands||[]).map(b=>`<span class="btag">${h(b)}</span>`).join("")}</td>
@@ -822,6 +883,45 @@
     } catch (e) {
       console.error("approveReport 오류:", e);
       alert("승인 중 오류가 발생했습니다:\n" + e.message);
+    }
+  }
+
+  // 정보 수정 신고: 가게를 지도에서 숨기고(폐업 등) 신고는 처리 완료로
+  async function hideFromReport(id) {
+    const r = reportsCache.find((x) => x.id === id);
+    if (!r || !r.placeId) return;
+    if (!confirm(`'${r.name}' 가게를 지도에서 숨길까요?\n사유: ${r.reason || "-"}\n(관리자 페이지 아래 '숨긴 가게'에서 다시 보이게 할 수 있습니다)`)) return;
+    try {
+      await db.collection("hidden_places").doc(r.placeId).set({
+        name: r.name || "",
+        reason: r.reason || "",
+        reportId: r.id,
+        hiddenAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      await db.collection("reports").doc(id).update({ status: "resolved" });
+    } catch (e) {
+      console.error(e);
+      alert("처리 중 오류가 발생했습니다: " + e.message);
+    }
+  }
+
+  async function resolveReport(id) {
+    try {
+      await db.collection("reports").doc(id).update({ status: "resolved" });
+    } catch (e) {
+      console.error(e);
+      alert("처리 중 오류가 발생했습니다: " + e.message);
+    }
+  }
+
+  async function unhidePlace(placeId) {
+    const x = hiddenCache.find((p) => p.id === placeId);
+    if (!confirm(`'${(x && x.name) || placeId}' 가게를 다시 지도에 보이게 할까요?`)) return;
+    try {
+      await db.collection("hidden_places").doc(placeId).delete();
+    } catch (e) {
+      console.error(e);
+      alert("처리 중 오류가 발생했습니다: " + e.message);
     }
   }
 

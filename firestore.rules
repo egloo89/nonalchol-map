@@ -2,20 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 가게 목록: 누구나 읽기/쓰기 가능
-    // (관리자 페이지가 Firebase Auth 미사용 - 별도 비밀번호 보호)
-    match /places/{docId} {
-      allow read, write: if true;
+    // 운영자: 구글 로그인 + 인증된 이메일 + 이메일 지문(SHA-256)이 일치해야 한다.
+    // 이 파일은 공개 저장소에 있으므로 이메일 원문 대신 지문만 적는다.
+    // (firebase-config.js 의 ADMIN_EMAIL_HASHES 와 같은 값)
+    function isOperator() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && hashing.sha256(request.auth.token.email.lower()).toHexString().lower()
+           == 'ed3c5f1ca9048078ae1cd2790fecf9d36794755403a8685f39c00d7a25ed1616';
     }
 
-    // 제보: 누구나 생성 가능, 읽기·수정·삭제도 허용 (관리자 운영)
+    // 가게 목록: 누구나 읽기, 추가·수정·삭제는 운영자만
+    match /places/{docId} {
+      allow read: if true;
+      allow write: if isOperator();
+    }
+
+    // 제보: 누구나 '대기 중' 새 제보만 보낼 수 있다 (가게 제보 + 정보 수정 신고)
+    //       읽기·승인·거절·삭제는 운영자만
     match /reports/{docId} {
-      allow read, write: if true;
+      allow create: if request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(['type', 'placeId', 'name', 'address', 'lat', 'lng', 'brands',
+                                                 'reason', 'comment', 'reportedBy', 'status', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.get('comment', '') is string
+        && request.resource.data.get('comment', '').size() <= 500;
+      allow read, update, delete: if isOperator();
+    }
+
+    // 지도에서 숨긴 가게 (폐업 신고 등): 문서 ID = 가게 ID. 지도가 읽어서 숨긴다. 바꾸는 건 운영자만
+    match /hidden_places/{placeId} {
+      allow read: if true;
+      allow write: if isOperator();
     }
 
     // 일자별 방문자 통계 (문서 ID = 한국 날짜 YYYY-MM-DD)
-    // 읽기: 관리자 페이지가 카카오/네이버 로그인(Firebase Auth 아님)으로도 열리므로 공개
-    // 쓰기: 한 번에 pageviews +1, visitors +0 또는 +1 만 허용. 삭제·임의 수정 불가
+    // 읽기: 공개(관리자 페이지에서 표시). 쓰기: 한 번에 pageviews +1, visitors +0/+1 만. 삭제 불가
     match /stats_daily/{day} {
       allow read: if true;
       allow create: if day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')

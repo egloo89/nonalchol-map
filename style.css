@@ -2011,6 +2011,65 @@ input:focus-visible,
   word-break: break-all;
 }
 
+/* ─── 정보창 하단 버튼: 이 가게 공유 / 정보가 달라요 ─── */
+.info-window .iw-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.info-window .iw-actions button {
+  flex: 1 1 0;
+  padding: 7px 4px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.info-window .iw-actions .iw-share { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+.info-window .iw-actions .iw-report { color: #6b7280; }
+
+/* ─── 정보 수정 신고 ─── */
+#correction-overlay { z-index: 2600; align-items: center !important; padding: 16px !important; }
+#correction-overlay.active .share-sheet { transform: none; }
+.correction-reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 12px;
+}
+.correction-reasons label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.correction-reasons label:has(input:checked) { border-color: #2563eb; background: #eff6ff; font-weight: 700; }
+.correction-reasons input { width: 18px; height: 18px; accent-color: #2563eb; }
+#correction-comment {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+.correction-submit { background: #2563eb; color: #fff; }
+.correction-submit:disabled { opacity: 0.6; }
+.correction-note { margin: 10px 0 0; font-size: 12.5px; color: #6b7280; }
+
 /* ─── 시크릿 모달 ─── */
 #secret-modal-overlay {
   display: none;

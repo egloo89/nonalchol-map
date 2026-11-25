@@ -25,6 +25,10 @@ let userLatLng = null; // 현재 위치 버튼으로 찾은 내 위치 (목록 �
 let clusterer = null; // 가까운 NON 마커를 숫자 원으로 묶는다
 let lastFiltered = []; // 필터·검색을 통과한 가게 (목록을 지도 화면에 맞춰 다시 그릴 때 사용)
 let activePlaceId = null;
+let allPlacesRaw = [];          // 숨김 처리 전 전체 가게 (Firestore + 코드에 든 가게)
+let hiddenPlaceIds = new Set(); // 운영자가 '지도에서 숨기기' 한 가게 (폐업 등)
+// 가게 하나를 공유한 링크(?place=가게ID)로 들어오면 그 가게를 바로 연다
+const LINKED_PLACE_ID = (() => { try { return new URL(location.href).searchParams.get("place"); } catch (e) { return null; } })();
 let lastNonMarkerClick = 0; // NON 마커 클릭 시각 (맵 클릭 이벤트 중복 방지)
 let isMapBlocked = false;
 let scheduleMapLayout = function () {};
@@ -874,6 +878,7 @@ function openModalWithPlaceData(place) {
 let prevPlaceCount = -1;
 
 function loadPlaces() {
+  watchHiddenPlaces();
   db.collection("places")
     .onSnapshot((snapshot) => {
       const fromDb = snapshot.docs
@@ -882,12 +887,12 @@ function loadPlaces() {
       const seen = new Set(fromDb.map(placeKey));
       const curatedSource = typeof CURATED_PLACES !== "undefined" ? CURATED_PLACES : [];
       const curated = curatedSource.filter((place) => !seen.has(placeKey(place)));
-      places = fromDb.concat(curated);
-      console.log("[loadPlaces] 가게 수:", places.length, places.map(p => `${p.name}(${p.lat},${p.lng})`));
+      allPlacesRaw = fromDb.concat(curated);
+      places = allPlacesRaw.filter((p) => !hiddenPlaceIds.has(p.id));
+      console.log("[loadPlaces] 가게 수:", places.length);
 
-      // 지도가 열린 상태에서 새 가게가 승인/추가되면 그 위치로 이동하도록 범위 재조정
+      // 지도가 열린 상태에서 새 가게가 승인/추가되면 알려준다
       if (prevPlaceCount !== -1 && places.length > prevPlaceCount) {
-        hasFitBounds = false;
         const newest = places[0]; // 가장 최근 추가된 가게
         if (newest && Number(newest.lat) && Number(newest.lng)) {
           showToast(`새 가게 '${newest.name}'가 지도에 추가됐어요!`, "success");
@@ -902,6 +907,20 @@ function loadPlaces() {
       console.error("[loadPlaces] Firestore 오류 (보안 규칙 확인 필요):", err.code, err.message);
       showToast("데이터를 불러오는 중 오류가 발생했습니다. (F12 콘솔 확인)", "error");
     });
+}
+
+// 운영자가 숨긴 가게 목록 (hidden_places/{가게ID}). 읽지 못해도 지도는 그대로 동작한다.
+function watchHiddenPlaces() {
+  if (!window.db) return;
+  db.collection("hidden_places").onSnapshot((snap) => {
+    hiddenPlaceIds = new Set(snap.docs.map((d) => d.id));
+    if (!allPlacesRaw.length) return;
+    places = allPlacesRaw.filter((p) => !hiddenPlaceIds.has(p.id));
+    prevPlaceCount = places.length;
+    updateCount(places.length);
+    renderFilterBar();
+    applyFilters();
+  }, () => {});
 }
 
 // ─── Firestore: 가게 추가 ──────────────────────────
@@ -997,6 +1016,17 @@ function renderMarkers(filtered) {
       closeInfoWindow();
     });
 
+    infoEl.querySelector(".iw-share")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      kakao.maps.event.preventMap();
+      openShare(place);
+    });
+    infoEl.querySelector(".iw-report")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      kakao.maps.event.preventMap();
+      openCorrection(place);
+    });
+
     // 정보창 내 네이버맵 링크 클릭 (카카오 이벤트 차단 후 새 탭 이동)
     infoEl.querySelector(".btn-naver-map")?.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1021,12 +1051,17 @@ function renderMarkers(filtered) {
 
   console.log(`[renderMarkers] 표시된 마커 ${validCount}개 / 전체 ${list.length}개`);
 
-  // 첫 로드 시 전국이 아니라 서울 지역이 보이도록 고정
+  // 첫 로드 시: 공유받은 가게 링크면 그 가게로, 아니면 서울 지역이 보이도록
   if (validCount > 0 && !hasFitBounds) {
+    const linked = LINKED_PLACE_ID && places.find((p) => p.id === LINKED_PLACE_ID);
     setTimeout(() => {
       map.relayout();
-      map.setCenter(new kakao.maps.LatLng(37.5565, 126.978));
-      map.setLevel(8);
+      if (linked) {
+        focusPlace(linked.id);
+      } else {
+        map.setCenter(new kakao.maps.LatLng(37.5565, 126.978));
+        map.setLevel(8);
+      }
     }, 200);
     hasFitBounds = true;
   }
@@ -1048,6 +1083,10 @@ function buildInfoWindowContent(place) {
       ${place.phone ? `<div class="iw-meta">📞 ${escapeHtml(place.phone)}</div>` : ""}
       ${place.hours ? `<div class="iw-meta">🕐 ${escapeHtml(place.hours)}</div>` : ""}
       <a href="${naverUrl}" target="_blank" rel="noopener" class="btn-naver-map">네이버맵 바로가기</a>
+      <div class="iw-actions">
+        <button type="button" class="iw-share" data-id="${escapeHtml(place.id)}">📤 이 가게 공유</button>
+        <button type="button" class="iw-report" data-id="${escapeHtml(place.id)}">⚠️ 정보가 달라요</button>
+      </div>
     </div>
   `;
 }
@@ -2098,14 +2137,39 @@ const SHARE_BASE_URL = "https://nonalchol-map.vercel.app/";
 const SHARE_TITLE = "논알콜맵 - 논알콜 맥주·하이볼·칵테일·와인 파는 가게 지도";
 const SHARE_TEXT = "술 줄이고 싶을 때, 운전할 때, 임산부일 때! 논알콜 파는 가게를 지도에서 찾아보세요 🍻";
 
+let shareTarget = null; // null 이면 논알콜맵 전체, 가게 객체면 그 가게 하나
+
 // 어떤 방법으로 공유됐는지 Vercel 분석에서 볼 수 있게 utm_source 를 붙인다
 function shareUrl(source) {
+  if (shareTarget) {
+    return SHARE_BASE_URL + "?place=" + encodeURIComponent(shareTarget.id) + "&utm_source=" + encodeURIComponent(source + "_place");
+  }
   return SHARE_BASE_URL + "?utm_source=" + encodeURIComponent(source);
 }
 
-function openShare() {
+function placeDrinksText(place) {
+  return (place.brands || []).map((b) => b.replace(" (종류 무관)", "")).slice(0, 3).join(", ");
+}
+
+function openShare(place) {
   const overlay = document.getElementById("share-overlay");
   if (!overlay) return;
+  shareTarget = place && place.id ? place : null;
+  const title = document.getElementById("share-title");
+  const sub = document.querySelector("#share-overlay .share-sub");
+  if (shareTarget) {
+    if (title) title.textContent = `'${shareTarget.name}' 친구에게 보내기`;
+    if (sub) sub.innerHTML = `여기 <b>${escapeHtml(placeDrinksText(shareTarget) || "논알콜")}</b> 있대요 🍻<br><span style="font-size:13px;color:#6b7280">📍 ${escapeHtml(shareTarget.address || "")}</span>`;
+  } else {
+    if (title) title.textContent = "친구에게 논알콜맵 알려주기";
+    if (sub) sub.innerHTML = "술 줄이고 싶은 친구, 운전하는 친구,<br>임산부 친구에게 논알콜 파는<br>가게 지도를 보내 주세요 🍻";
+  }
+  const urlEl = document.getElementById("share-url");
+  if (urlEl) {
+    let shown = shareUrl("share_link").replace(/^https:\/\//, "").replace(/[?&]utm_source=[^&]*/, "").replace(/\/$/, "");
+    try { shown = decodeURIComponent(shown); } catch (e) {}
+    urlEl.textContent = shown;
+  }
   overlay.classList.add("active");
   overlay.setAttribute("aria-hidden", "false");
 }
@@ -2130,8 +2194,12 @@ async function copyText(text) {
 
 async function shareNative(source) {
   if (!navigator.share) return false;
+  const title = shareTarget ? `${shareTarget.name} - 논알콜맵` : SHARE_TITLE;
+  const text = shareTarget
+    ? `여기 ${placeDrinksText(shareTarget) || "논알콜"} 있대요 🍻 ${shareTarget.address || ""}`
+    : SHARE_TEXT;
   try {
-    await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url: shareUrl(source) });
+    await navigator.share({ title, text, url: shareUrl(source) });
     return true;
   } catch (e) {
     return e && e.name === "AbortError"; // 사용자가 취소한 것은 실패로 보지 않는다
@@ -2146,14 +2214,16 @@ function shareKakao() {
     Kakao.Share.sendDefault({
       objectType: "feed",
       content: {
-        title: "논알콜맵",
-        description: "논알콜 맥주·하이볼·칵테일·와인 파는 가게를 지도에서 찾아보세요 🍻",
+        title: shareTarget ? `${shareTarget.name} · 논알콜맵` : "논알콜맵",
+        description: shareTarget
+          ? `여기 ${placeDrinksText(shareTarget) || "논알콜"} 있대요 🍻\n📍 ${shareTarget.address || ""}`
+          : "논알콜 맥주·하이볼·칵테일·와인 파는 가게를 지도에서 찾아보세요 🍻",
         imageUrl: SHARE_BASE_URL + "icon-512.png",
         imageWidth: 512,
         imageHeight: 512,
         link: { mobileWebUrl: url, webUrl: url },
       },
-      buttons: [{ title: "지도 보기", link: { mobileWebUrl: url, webUrl: url } }],
+      buttons: [{ title: shareTarget ? "가게 위치 보기" : "지도 보기", link: { mobileWebUrl: url, webUrl: url } }],
     });
     return true;
   } catch (e) {
@@ -2162,7 +2232,70 @@ function shareKakao() {
   }
 }
 
+// ─── 가게 정보 수정 신고 (reports 에 type: "correction" 으로 저장) ───
+let correctionTarget = null;
+
+function openCorrection(place) {
+  const overlay = document.getElementById("correction-overlay");
+  if (!overlay || !place) return;
+  correctionTarget = place;
+  document.getElementById("correction-form").reset();
+  document.getElementById("correction-place").innerHTML =
+    `<b>${escapeHtml(place.name)}</b><br><span style="font-size:13px;color:#6b7280">📍 ${escapeHtml(place.address || "")}</span>`;
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+}
+function closeCorrection() {
+  const overlay = document.getElementById("correction-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  overlay.setAttribute("aria-hidden", "true");
+}
+
+function initCorrection() {
+  const overlay = document.getElementById("correction-overlay");
+  if (!overlay || overlay.dataset.ready) return;
+  overlay.dataset.ready = "1";
+  document.getElementById("correction-close")?.addEventListener("click", closeCorrection);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeCorrection(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.classList.contains("active")) closeCorrection();
+  });
+  document.getElementById("correction-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const place = correctionTarget;
+    const reason = document.querySelector('input[name="correction-reason"]:checked')?.value;
+    if (!place || !reason) return;
+    const btn = document.getElementById("correction-submit");
+    btn.disabled = true;
+    btn.textContent = "보내는 중...";
+    try {
+      if (!window.db) initFirebase();
+      await db.collection("reports").add({
+        type: "correction",
+        placeId: String(place.id),
+        name: String(place.name || "").slice(0, 100),
+        address: String(place.address || "").slice(0, 200),
+        reason,
+        comment: document.getElementById("correction-comment").value.trim().slice(0, 300),
+        reportedBy: currentUser?.nickname || "익명",
+        status: "pending",
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      closeCorrection();
+      showToast("신고가 접수됐어요. 확인 후 반영할게요 🙏", "success");
+    } catch (err) {
+      console.error("정보 수정 신고 실패", err);
+      showToast("신고를 보내지 못했어요. 잠시 후 다시 시도해 주세요.", "error");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "신고 보내기";
+    }
+  });
+}
+
 function initShare() {
+  initCorrection();
   const overlay = document.getElementById("share-overlay");
   if (!overlay || overlay.dataset.ready) return;
   overlay.dataset.ready = "1";
@@ -2171,8 +2304,8 @@ function initShare() {
   if (urlEl) urlEl.textContent = SHARE_BASE_URL.replace(/^https:\/\//, "").replace(/\/$/, "");
   if (navigator.share) document.getElementById("share-native").hidden = false;
 
-  document.getElementById("btn-share-pc")?.addEventListener("click", openShare);
-  document.getElementById("mobile-share-btn")?.addEventListener("click", openShare);
+  document.getElementById("btn-share-pc")?.addEventListener("click", () => openShare(null));
+  document.getElementById("mobile-share-btn")?.addEventListener("click", () => openShare(null));
   document.getElementById("share-close")?.addEventListener("click", closeShare);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closeShare(); });
   document.addEventListener("keydown", (e) => {
@@ -2208,7 +2341,7 @@ function initWelcomePopup() {
 
   let hiddenDate = null;
   try { hiddenDate = localStorage.getItem(WELCOME_HIDE_KEY); } catch (e) {}
-  if (hiddenDate === todayKey() || INSTALL_HANDOFF) return;
+  if (hiddenDate === todayKey() || INSTALL_HANDOFF || LINKED_PLACE_ID) return;
 
   const skip = document.getElementById("welcome-skip-today");
 
@@ -2225,7 +2358,7 @@ function initWelcomePopup() {
   document.getElementById("welcome-shop")?.addEventListener("click", close);
   document.getElementById("welcome-share")?.addEventListener("click", () => {
     close();
-    openShare();
+    openShare(null);
   });
   document.getElementById("welcome-report")?.addEventListener("click", () => {
     close();

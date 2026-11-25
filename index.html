@@ -400,6 +400,24 @@
   </div>
 </div>
 
+<!-- ─── 가게 정보 수정 신고 ─── -->
+<div id="correction-overlay" class="modal-overlay" aria-hidden="true">
+  <form class="share-sheet correction-sheet" id="correction-form" role="dialog" aria-modal="true" aria-labelledby="correction-title">
+    <button type="button" class="modal-close share-close" id="correction-close" aria-label="닫기">✕</button>
+    <h2 id="correction-title">정보가 달라요</h2>
+    <p class="share-sub" id="correction-place"></p>
+    <div class="correction-reasons" role="radiogroup" aria-label="무엇이 다른가요?">
+      <label><input type="radio" name="correction-reason" value="폐업했어요" required /> 🚫 폐업했어요</label>
+      <label><input type="radio" name="correction-reason" value="논알콜 메뉴가 없어졌어요" /> 🍺 논알콜 메뉴가 없어졌어요</label>
+      <label><input type="radio" name="correction-reason" value="주소·위치가 달라요" /> 📍 주소·위치가 달라요</label>
+      <label><input type="radio" name="correction-reason" value="다른 정보가 달라요" /> ✏️ 다른 정보가 달라요</label>
+    </div>
+    <textarea id="correction-comment" maxlength="300" rows="3" placeholder="자세히 알려주시면 더 빨리 고칠 수 있어요 (선택)"></textarea>
+    <button type="submit" class="share-btn correction-submit" id="correction-submit">신고 보내기</button>
+    <p class="correction-note">운영자가 확인한 뒤 지도에 반영해요. 알려주셔서 고마워요 🙏</p>
+  </form>
+</div>
+
 <!-- ─── 홈 화면에 추가 안내 (모바일) ─── -->
 <div id="install-banner" role="dialog" aria-labelledby="install-title" aria-hidden="true">
   <button type="button" class="install-close" id="install-close" aria-label="닫기">✕</button>
