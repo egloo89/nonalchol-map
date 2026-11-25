@@ -21,6 +21,10 @@ let currentSearch = "";
 let currentUser = null; // { uid, nickname }
 let hasFitBounds = false; // 첫 로드 시 마커 범위 자동 조정 여부
 let userLocationOverlay = null; // 현재 위치 파란 원 마커
+let userLatLng = null; // 현재 위치 버튼으로 찾은 내 위치 (목록 거리 표시용)
+let clusterer = null; // 가까운 NON 마커를 숫자 원으로 묶는다
+let lastFiltered = []; // 필터·검색을 통과한 가게 (목록을 지도 화면에 맞춰 다시 그릴 때 사용)
+let activePlaceId = null;
 let lastNonMarkerClick = 0; // NON 마커 클릭 시각 (맵 클릭 이벤트 중복 방지)
 let isMapBlocked = false;
 let scheduleMapLayout = function () {};
@@ -448,14 +452,26 @@ function setExternalUser(provider, id, nickname, photoURL = "", email = "") {
 }
 
 // 관리자 여부 + 관리자 링크 노출 제어
+// 관리자 목록은 이메일 지문(SHA-256)만 있어서 확인이 비동기다. 결과를 기억해 두고, 처음 확인이 끝나면 링크를 다시 그린다.
+const adminCheckCache = new Map();
 function isAdminUser(u) {
-  return !!(u && u.email && typeof ADMIN_EMAILS !== "undefined" &&
-    ADMIN_EMAILS.map((e) => e.toLowerCase()).includes(u.email.toLowerCase()));
+  const email = String((u && u.email) || "").trim().toLowerCase();
+  if (!email || typeof isAdminEmailAsync !== "function") return false;
+  if (adminCheckCache.has(email)) return adminCheckCache.get(email);
+  adminCheckCache.set(email, false);
+  isAdminEmailAsync(email).then((ok) => {
+    adminCheckCache.set(email, ok);
+    if (ok) updateAdminLink();
+  });
+  return false;
 }
 
 function updateAdminLink() {
+  const show = isAdminUser(currentUser);
   const link = document.getElementById("btn-admin-link");
-  if (link) link.style.display = isAdminUser(currentUser) ? "" : "none";
+  if (link) link.style.display = show ? "" : "none";
+  const mobileLink = document.getElementById("mobile-btn-admin-dd");
+  if (mobileLink && currentUser) mobileLink.style.display = show ? "" : "none";
 }
 
 function loadExternalUser() {
@@ -604,6 +620,34 @@ function initMap() {
       return;
     }
     searchAndShowPoiInfo(mouseEvent.latLng);
+  });
+
+  // 가까운 마커 묶기 (라이브러리가 없거나 실패하면 묶지 않고 그대로 표시)
+  try {
+    if (kakao.maps.MarkerClusterer) {
+      clusterer = new kakao.maps.MarkerClusterer({
+        map,
+        averageCenter: true,
+        minLevel: 6,      // 레벨 6 이상(넓게 볼 때)만 묶는다. 가까이 보면 NON 핀이 그대로 보인다
+        gridSize: 48,
+        calculator: [10, 30],
+        styles: [
+          { width: "34px", height: "34px", background: "rgba(37,99,235,0.9)", border: "2px solid #fff", borderRadius: "50%", color: "#fff", textAlign: "center", fontWeight: "800", fontSize: "13px", lineHeight: "30px", boxShadow: "0 2px 6px rgba(37,99,235,0.45)" },
+          { width: "42px", height: "42px", background: "rgba(29,78,216,0.92)", border: "2px solid #fff", borderRadius: "50%", color: "#fff", textAlign: "center", fontWeight: "800", fontSize: "14px", lineHeight: "38px", boxShadow: "0 2px 8px rgba(29,78,216,0.5)" },
+          { width: "50px", height: "50px", background: "rgba(30,64,175,0.94)", border: "2px solid #fff", borderRadius: "50%", color: "#fff", textAlign: "center", fontWeight: "800", fontSize: "15px", lineHeight: "46px", boxShadow: "0 2px 10px rgba(30,64,175,0.55)" },
+        ],
+      });
+    }
+  } catch (e) {
+    console.warn("[clusterer] 사용 불가, 마커를 묶지 않고 표시합니다", e);
+    clusterer = null;
+  }
+
+  // 지도를 움직이거나 확대·축소하면 아래 목록을 지금 보이는 지역 기준으로 다시 그린다
+  let idleTimer = null;
+  kakao.maps.event.addListener(map, "idle", () => {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(renderSidebarForView, 120);
   });
 
   bindMapLayout();
@@ -872,6 +916,7 @@ async function addPlace(data) {
 // ─── 마커 렌더링 (카카오 CustomOverlay) ──────────
 
 function clearMarkers() {
+  if (clusterer) clusterer.clear();
   markers.forEach((m) => m.setMap(null));
   infoOverlays.forEach((o) => o.setMap(null));
   markers = [];
@@ -907,7 +952,7 @@ function renderMarkers(filtered) {
     const marker = new kakao.maps.CustomOverlay({
       position,
       content: markerEl,
-      map,
+      map: clusterer ? null : map,
       yAnchor: 1,
       zIndex: 3,
     });
@@ -964,6 +1009,16 @@ function renderMarkers(filtered) {
     infoOverlayMap.set(place.id, infoOverlay);
   });
 
+  if (clusterer) {
+    try {
+      clusterer.addMarkers(markers);
+    } catch (e) {
+      console.warn("[clusterer] 추가 실패, 묶지 않고 표시합니다", e);
+      clusterer = null;
+      markers.forEach((m) => m.setMap(map));
+    }
+  }
+
   console.log(`[renderMarkers] 표시된 마커 ${validCount}개 / 전체 ${list.length}개`);
 
   // 첫 로드 시 전국이 아니라 서울 지역이 보이도록 고정
@@ -1000,7 +1055,33 @@ function buildInfoWindowContent(place) {
 // ─── 사이드바 렌더링 ───────────────────────────────
 
 function renderSidebar(list) {
+  lastFiltered = list;
+  renderSidebarForView();
+}
+
+function formatDistance(m) {
+  if (m < 1000) return `${Math.round(m / 10) * 10}m`;
+  return `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`;
+}
+
+function placeCardHtml(p, distM) {
+  const desc = cleanDescription(p.description);
+  return `
+      <div class="place-card${p.id === activePlaceId ? " active" : ""}" role="button" tabindex="0" data-id="${p.id}" onclick="focusPlace('${p.id}')" aria-label="${escapeHtml(p.name)} 지도에서 보기">
+        <div class="name">${escapeHtml(p.name)}${distM != null ? `<span class="dist">내 위치에서 ${formatDistance(distM)}</span>` : ""}</div>
+        <div class="address">📍 ${escapeHtml(p.address)}</div>
+        <div class="brands">
+          ${(p.brands || []).map(brandTagHtml).join("")}
+        </div>
+        ${desc ? `<div class="meta">${escapeHtml(desc.slice(0, 60))}${desc.length > 60 ? "..." : ""}</div>` : ""}
+      </div>`;
+}
+
+// 목록: 지금 지도에 보이는 가게만, 가까운 순서로. 검색 중이면 화면 밖 결과까지 모두.
+function renderSidebarForView() {
   const container = document.getElementById("place-list");
+  if (!container) return;
+  const list = lastFiltered;
 
   if (list.length === 0) {
     const isFiltering = hasActiveFilter();
@@ -1020,21 +1101,42 @@ function renderSidebar(list) {
     return;
   }
 
-  container.innerHTML = list
-    .map((p) => `
-      <div class="place-card" role="button" tabindex="0" data-id="${p.id}" onclick="focusPlace('${p.id}')" aria-label="${escapeHtml(p.name)} 지도에서 보기">
-        <div class="name">${escapeHtml(p.name)}</div>
-        <div class="address">📍 ${escapeHtml(p.address)}</div>
-        <div class="brands">
-          ${(p.brands || []).map(brandTagHtml).join("")}
-        </div>
-        ${cleanDescription(p.description) ? `<div class="meta">${escapeHtml(cleanDescription(p.description).slice(0, 60))}${cleanDescription(p.description).length > 60 ? "..." : ""}</div>` : ""}
-      </div>
-    `)
-    .join("");
+  const valid = list.filter((p) => isFinite(Number(p.lat)) && isFinite(Number(p.lng)) && Number(p.lat) !== 0);
+  if (!map || !window.kakao?.maps) {
+    container.innerHTML = list.map((p) => placeCardHtml(p, null)).join("");
+    return;
+  }
+
+  const center = map.getCenter();
+  const ref = userLatLng || center;
+  const refLat = ref.getLat(), refLng = ref.getLng();
+  const withDist = valid.map((p) => ({ p, d: haversineDistance(refLat, refLng, Number(p.lat), Number(p.lng)) }))
+    .sort((a, b) => a.d - b.d);
+  const showDist = (d) => (userLatLng ? d : null);
+
+  let header, items;
+  if (currentSearch) {
+    items = withDist;
+    header = `검색 결과 <b>${items.length}곳</b> · ${userLatLng ? "내 위치에서" : "지도 중심에서"} 가까운 순`;
+  } else {
+    const bounds = map.getBounds();
+    const inView = withDist.filter(({ p }) => bounds.contain(new kakao.maps.LatLng(Number(p.lat), Number(p.lng))));
+    if (inView.length) {
+      items = inView;
+      const outside = withDist.length - inView.length;
+      header = `지금 지도에 보이는 가게 <b>${inView.length}곳</b> · 가까운 순${outside ? `<span class="lh-sub">화면 밖 ${outside}곳은 지도를 옮기면 보여요</span>` : ""}`;
+    } else {
+      items = withDist.slice(0, 5);
+      header = `이 화면에는 가게가 없어요 · <b>가장 가까운 ${items.length}곳</b><span class="lh-sub">눌러서 그 가게로 이동하세요</span>`;
+    }
+  }
+
+  container.innerHTML = `<div class="list-head">${header}</div>` +
+    items.map(({ p, d }) => placeCardHtml(p, showDist(d))).join("");
 }
 
 function highlightCard(id) {
+  activePlaceId = id;
   document.querySelectorAll(".place-card").forEach((el) => {
     el.classList.toggle("active", el.dataset.id === id);
   });
@@ -2257,6 +2359,7 @@ function initMobileTopbar() {
 
   // 현재 위치 파란 원 표시
   window.showUserLocation = function (latlng) {
+    userLatLng = latlng;
     if (userLocationOverlay) userLocationOverlay.setMap(null);
     const el = document.createElement("div");
     el.className = "user-location-marker";

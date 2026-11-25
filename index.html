@@ -69,7 +69,7 @@
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       const script = document.createElement("script");
-      script.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + KAKAO_MAP_KEY + "&libraries=services&autoload=false";
+      script.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + KAKAO_MAP_KEY + "&libraries=services,clusterer&autoload=false";
       script.onload = function () {
         kakao.maps.load(function () {
           initMap();
